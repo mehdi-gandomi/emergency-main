@@ -1,0 +1,463 @@
+@import 'tailwindcss';
+
+/* Leaflet core CSS */
+@import 'leaflet/dist/leaflet.css' layer(utilities);
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  --font-persian: IRANSans, Tahoma, Arial, sans-serif;
+  --font-sans: Inter, IRANSans, Tahoma, Arial, sans-serif;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-emergency: hsl(var(--emergency));
+  --color-emergency-foreground: hsl(var(--emergency-foreground));
+
+  --color-active-call: hsl(var(--active-call));
+  --color-active-call-foreground: hsl(var(--active-call-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-priority-critical: hsl(var(--priority-critical));
+  --color-priority-high: hsl(var(--priority-high));
+  --color-priority-medium: hsl(var(--priority-medium));
+  --color-priority-low: hsl(var(--priority-low));
+  --color-priority-info: hsl(var(--priority-info));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility text-persian {
+  /* Persian text utilities */
+
+  font-feature-settings: 'liga' off;
+}
+
+@utility rtl-grid {
+  direction: rtl;
+}
+
+@layer utilities {
+  /* Custom pulsing marker */
+  .pulse-marker {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pulse-marker::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: rgba(59, 130, 246, 0.7); /* blue-500 with opacity */
+    animation: pulse 1.5s infinite ease-out;
+    z-index: 0;
+  }
+
+  .pulse-marker > div {
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.5);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.3;
+    }
+    100% {
+      transform: scale(0.5);
+      opacity: 0.7;
+    }
+  }
+
+  /* Gentle pulse animation for status bar */
+  @keyframes gentle-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-gentle-pulse {
+    animation: gentle-pulse 2s infinite ease-in-out;
+  }
+
+  /* You can also use local Persian fonts - uncomment below if you have them */
+  /*
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./assets/fonts/IRANSans.woff2') format('woff2'),
+       url('./assets/fonts/IRANSans.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+  /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+}
+
+@layer base {
+  :root {
+    /* Emergency Call Center Design System */
+    --background: 0 0% 98%;
+    --foreground: 225 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 225 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 15% 15%;
+
+    /* Emergency Colors */
+    --emergency: 0 84% 60%;
+    --emergency-foreground: 0 0% 100%;
+    
+    --active-call: 142 76% 45%;
+    --active-call-foreground: 0 0% 100%;
+    
+    --warning: 38 95% 56%;
+    --warning-foreground: 0 0% 100%;
+    
+    --priority-critical: 0 84% 60%;
+    --priority-high: 14 100% 57%;
+    --priority-medium: 38 95% 56%;
+    --priority-low: 197 37% 56%;
+    --priority-info: 220 13% 69%;
+
+    --primary: 225 15% 15%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 225 15% 15%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 94%;
+    --accent-foreground: 225 15% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 225 15% 15%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Responsive base font sizing to prevent layout overflow */
+  html { font-size: 16px; }
+  @media (max-width: 1440px) { html { font-size: 15px; } }
+  @media (max-width: 1280px) { html { font-size: 14.5px; } }
+  @media (max-width: 1024px) { html { font-size: 14px; } }
+  @media (max-width: 768px)  { html { font-size: 13.5px; } }
+  @media (max-width: 640px)  { html { font-size: 13px; } }
+
+  /* Persian/RTL specific styles */
+
+  /* Improve Persian text rendering */
+  .font-persian,
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] button {
+    
+    font-feature-settings: 'liga' off;
+  }
+
+  /* Fix RTL layout for specific components */
+  [dir="rtl"] .grid {
+    direction: rtl;
+  }
+
+  [dir="rtl"] input[type="tel"],
+  [dir="rtl"] input[type="datetime-local"] {
+    direction: ltr;
+    text-align: right;
+  }
+}
+
+.rmdp-container {
+  direction: rtl !important;
+}
+
+.rmdp-input {
+  height: 36px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  background: white !important;
+  color: #374151 !important;
+}
+
+.rmdp-input:focus {
+  outline: none !important;
+  border-color: #fd2800 !important;
+  box-shadow: 0 0 0 3px rgba(253, 40, 0, 0.1) !important;
+}
+
+.rmdp-calendar {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  z-index: 50 !important;
+}
+
+.rmdp-header {
+  background: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 12px !important;
+}
+
+.rmdp-month-picker,
+.rmdp-year-picker {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.rmdp-day {
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+.rmdp-day:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.rmdp-day.rmdp-selected {
+  background: #fd2800 !important;
+  color: white !important;
+}
+
+.rmdp-day.rmdp-today {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+}
+
+.rmdp-week-day {
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+.rmdp-arrow {
+  color: #6b7280 !important;
+}
+
+.rmdp-arrow:hover {
+  color: #fd2800 !important;
+}
+
+.rmdp-time-picker {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.rmdp-time-picker input {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 14px !important;
+}
+
+.rmdp-time-picker input:focus {
+  outline: none !important;
+  border-color: #fd2800 !important;
+  box-shadow: 0 0 0 2px rgba(253, 40, 0, 0.1) !important;
+}
+/* Popover full width styles */
+.popover-trigger-full {
+  display: block !important;
+  width: 100% !important;
+}
+
+.popover-content-full {
+  display: block !important;
+  width: var(--radix-popover-trigger-width) !important;
+  min-width: 100% !important;
+}
+
+/* Alternative: Force all popovers to be full width */
+[data-radix-popover-trigger] {
+  display: block !important;
+  width: 100% !important;
+}
+
+[data-radix-popover-content] {
+  display: block !important;
+  width: var(--radix-popover-trigger-width) !important;
+}

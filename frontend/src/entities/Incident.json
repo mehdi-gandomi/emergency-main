@@ -1,0 +1,124 @@
+{
+  "name": "Incident",
+  "type": "object",
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "description": "شناسه منحصر به فرد حادثه"
+    },
+    "title": {
+      "type": "string",
+      "description": "عنوان حادثه"
+    },
+    "description": {
+      "type": "string",
+      "description": "شرح کامل حادثه"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "road_accident",
+        "mountain_rescue",
+        "urban_emergency",
+        "natural_disaster",
+        "medical_emergency",
+        "fire",
+        "flood",
+        "earthquake"
+      ],
+      "description": "نوع حادثه"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "اولویت حادثه"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        }
+      },
+      "description": "موقعیت جغرافیایی حادثه"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "assigned",
+        "in_progress",
+        "temporarily_completed",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "وضعیت حادثه"
+    },
+    "contact_type": {
+      "type": "string",
+      "enum": [
+        "call_112",
+        "application",
+        "operator_entry"
+      ],
+      "description": "نحوه ثبت حادثه"
+    },
+    "operator_name": {
+      "type": "string",
+      "description": "نام اپراتور دیسپچ"
+    },
+    "operator_code": {
+      "type": "string",
+      "description": "کد اپراتور"
+    },
+    "casualties": {
+      "type": "number",
+      "description": "تعداد مصدومان"
+    },
+    "affected_people": {
+      "type": "number",
+      "description": "تعداد افراد درگیر"
+    },
+    "vehicles_involved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "وسایل نقلیه درگیر"
+    },
+    "weather_condition": {
+      "type": "string",
+      "description": "شرایط آب و هوایی"
+    },
+    "time_reported": {
+      "type": "string",
+      "format": "date-time",
+      "description": "زمان گزارش حادثه"
+    }
+  },
+  "required": [
+    "incident_id",
+    "title",
+    "incident_type",
+    "location"
+  ]
+}

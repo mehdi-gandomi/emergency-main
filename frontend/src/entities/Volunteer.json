@@ -1,0 +1,141 @@
+{
+  "name": "Volunteer",
+  "type": "object",
+  "properties": {
+    "personnel_id": {
+      "type": "string",
+      "description": "شماره پرسنلی"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "نام و نام خانوادگی"
+    },
+    "rank": {
+      "type": "string",
+      "enum": [
+        "rescue_assistant",
+        "rescuer_level_1",
+        "rescuer_level_2",
+        "sacrifice"
+      ],
+      "description": "درجه امدادگر"
+    },
+    "specializations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mountain",
+          "road",
+          "debris",
+          "medical",
+          "water",
+          "search",
+          "technical"
+        ]
+      },
+      "description": "تخصص‌های امدادی"
+    },
+    "team": {
+      "type": "string",
+      "description": "تیم تخصصی"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "last_update": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "description": "موقعیت فعلی"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "on_mission",
+        "off_duty",
+        "unavailable"
+      ],
+      "default": "off_duty",
+      "description": "وضعیت آمادگی"
+    },
+    "contact_info": {
+      "type": "object",
+      "properties": {
+        "mobile": {
+          "type": "string"
+        },
+        "emergency_contact": {
+          "type": "string"
+        }
+      },
+      "description": "اطلاعات تماس"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "تصویر پروفایل"
+    },
+    "base_assignment": {
+      "type": "string",
+      "description": "پایگاه محل خدمت"
+    },
+    "experience_years": {
+      "type": "number",
+      "description": "سال‌های تجربه"
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "گواهینامه‌ها"
+    },
+    "availability_radius": {
+      "type": "number",
+      "default": 20,
+      "description": "شعاع دسترسی (کیلومتر)"
+    },
+    "current_mission": {
+      "type": "object",
+      "properties": {
+        "mission_id": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "description": "ماموریت جاری"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "امتیاز عملکرد"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "وضعیت فعال بودن"
+    }
+  },
+  "required": [
+    "personnel_id",
+    "full_name",
+    "rank",
+    "location",
+    "status"
+  ]
+}

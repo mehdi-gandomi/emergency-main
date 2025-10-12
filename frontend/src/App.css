@@ -1,0 +1,182 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* Persian Date Picker Custom Styles */
+.rmdp-container {
+  direction: rtl !important;
+}
+
+.rmdp-input {
+  height: 36px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  background: white !important;
+  color: #374151 !important;
+}
+
+.rmdp-input:focus {
+  outline: none !important;
+  border-color: #fd2800 !important;
+  box-shadow: 0 0 0 3px rgba(253, 40, 0, 0.1) !important;
+}
+
+.rmdp-calendar {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  z-index: 50 !important;
+}
+
+.rmdp-header {
+  background: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 12px !important;
+}
+
+.rmdp-month-picker,
+.rmdp-year-picker {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.rmdp-day {
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+.rmdp-day:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.rmdp-day.rmdp-selected {
+  background: #fd2800 !important;
+  color: white !important;
+}
+
+.rmdp-day.rmdp-today {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+}
+
+.rmdp-week-day {
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+.rmdp-arrow {
+  color: #6b7280 !important;
+}
+
+.rmdp-arrow:hover {
+  color: #fd2800 !important;
+}
+
+.rmdp-time-picker {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.rmdp-time-picker input {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 14px !important;
+}
+
+.rmdp-time-picker input:focus {
+  outline: none !important;
+  border-color: #fd2800 !important;
+  box-shadow: 0 0 0 2px rgba(253, 40, 0, 0.1) !important;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}

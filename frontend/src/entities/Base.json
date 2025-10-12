@@ -1,0 +1,177 @@
+{
+  "name": "Base",
+  "type": "object",
+  "properties": {
+    "operational_code": {
+      "type": "string",
+      "description": "کد مرکز عملیاتی"
+    },
+    "name": {
+      "type": "string",
+      "description": "عنوان پایگاه"
+    },
+    "base_type": {
+      "type": "string",
+      "enum": [
+        "intercity",
+        "mountain",
+        "coastal",
+        "canine",
+        "aerial",
+        "urban",
+        "rapid_response"
+      ],
+      "description": "نوع پایگاه"
+    },
+    "specialization": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "road_rescue",
+          "mountain_rescue",
+          "urban_rescue",
+          "medical",
+          "fire",
+          "flood",
+          "earthquake",
+          "search_rescue"
+        ]
+      },
+      "description": "تخصص‌های پایگاه"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        }
+      },
+      "description": "موقعیت جغرافیایی پایگاه"
+    },
+    "contact_info": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "mobile": {
+          "type": "string"
+        },
+        "vhf_code": {
+          "type": "string"
+        },
+        "vhf_channel": {
+          "type": "string"
+        }
+      },
+      "description": "اطلاعات تماس"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "on_mission",
+        "out_of_service",
+        "maintenance"
+      ],
+      "default": "ready",
+      "description": "وضعیت پایگاه"
+    },
+    "current_mission": {
+      "type": "object",
+      "properties": {
+        "mission_id": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "estimated_duration": {
+          "type": "number"
+        }
+      },
+      "description": "ماموریت جاری"
+    },
+    "personnel_count": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "number"
+        },
+        "on_duty": {
+          "type": "number"
+        },
+        "available": {
+          "type": "number"
+        }
+      },
+      "description": "تعداد پرسنل"
+    },
+    "equipment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "تجهیزات موجود"
+    },
+    "vehicles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "plate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "وسایل نقلیه"
+    },
+    "response_capability": {
+      "type": "object",
+      "properties": {
+        "max_personnel": {
+          "type": "number"
+        },
+        "average_response_time": {
+          "type": "number"
+        },
+        "coverage_radius": {
+          "type": "number"
+        }
+      },
+      "description": "قابلیت پاسخگویی"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "وضعیت فعال بودن پایگاه"
+    }
+  },
+  "required": [
+    "operational_code",
+    "name",
+    "base_type",
+    "location",
+    "status"
+  ]
+}
