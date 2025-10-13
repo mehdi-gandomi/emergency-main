@@ -1,8 +1,8 @@
 export enum PublicSource {
-  VICTIM = 'VICTIM',
-  PASSERBY = 'PASSERBY',
-  FRIENDS = 'FRIENDS',
-  RELATIVES = 'RELATIVES'
+  VICTIM = 1,
+  PASSERBY = 2,
+  FRIENDS = 3,
+  RELATIVES = 4
 }
 
 export const PublicSourceLabels: Record<PublicSource, string> = {
@@ -15,7 +15,7 @@ export const PublicSourceLabels: Record<PublicSource, string> = {
 /**
  * Convert old string values to enum values
  */
-export function convertToPublicSourceEnum(value: string): PublicSource | null {
+export function convertToPublicSourceEnum(value: string | number): PublicSource | null {
   switch (value) {
     case 'خود فرد حادثه دیده':
       return PublicSource.VICTIM;
@@ -24,6 +24,14 @@ export function convertToPublicSourceEnum(value: string): PublicSource | null {
     case 'دوستان':
       return PublicSource.FRIENDS;
     case 'خویشاوندان':
+      return PublicSource.RELATIVES;
+    case 1:
+      return PublicSource.VICTIM;
+    case 2:
+      return PublicSource.PASSERBY;
+    case 3:
+      return PublicSource.FRIENDS;
+    case 4:
       return PublicSource.RELATIVES;
     default:
       return null;

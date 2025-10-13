@@ -57,7 +57,7 @@ class ContactDetail extends Model
         'feet_num',           // تعداد فوتی
         'healthy_people_num', // تعداد افراد سالم
         'prisoners_num',      // تعداد محبوسین
-        'trapped_in_flood_snow_num', // تعداد افراد گرفتار شده در سیل / برف
+
         'trauma_type',        // نوع تروما یا مصدومیت
         'trauma_member',      // عضو دچار تروما شده
         'caller_name',        // نام و نام خانوادگی تماس گیرنده
@@ -69,18 +69,18 @@ class ContactDetail extends Model
         'operator_time',      // ساعت ارجاع به اپراتور دیسپچ
         'user_date',          // تاریخ ارجاع به کاربر پایگاه
         'user_time',          // ساعت ارجاع به کاربر پایگاه
-        'caught_in_snow_flood_num', // تعداد افراد گرفتار شده در سیل / برف   
-        'caught_homes_num', // تعداد خانه های گرفتار شده 
+        'caught_in_snow_flood_num', // تعداد افراد گرفتار شده در سیل / برف
+        'caught_homes_num', // تعداد خانه های گرفتار شده
         'organizations_in_place', // ارگانهای حاضر در صحنه,
         'mission_notes', //ملاحظات ماموریت
         // NEW fields for contact_details from frontend
-        
+
         'address',           // توضیحات موقعیت
         'latitude',                       // عرض جغرافیایی (جدید)
         'longitude',                      // طول جغرافیایی (جدید)
         'priority',                       // اولویت
         'event_people_num',               // تعداد قربانیان
-        
+
         'call_time_info',                 // اطلاعات زمانی تماس
         'incident_source_location',       // موقعیت منبع اعلام حادثه
         'incident_declaration_source',    // منبع اعلام حادثه
@@ -102,7 +102,7 @@ class ContactDetail extends Model
         'cancel_organizational_source',   // منبع سازمانی لغو کننده (JSON)
         'cancel_organizational_type',     // نوع سازمان لغو کننده
         'mission_result',                 // نتیجه مأموریت
-        'call_track_detail',              // جزئیات پیگیری تماس
+
         'call_track_name',                // نام پیگیری کننده
         'follow_up_type',                 // نوع پیگیری
         'nuisance_type',                  // نوع مزاحمت
@@ -111,16 +111,16 @@ class ContactDetail extends Model
         'required_vehicles',              // خودروهای مورد نیاز (JSON)
         'needs_other_provinces',          // نیاز به استان‌های دیگر
         'cc',                            // کپی کاربن
-        'trapped_in_flood_snow_num_detail', // جزئیات تعداد افراد گرفتار در سیل/برف
+
         'organizations_in_place_detail',  // جزئیات ارگان‌های حاضر در صحنه (JSON)
     ];
 
     protected $casts = [
-        'event_environment'     => EventEnvironment::class,
-        'type_mountain'         => TypeMountain::class,
-        'climb_route'           => ClimbRoute::class,
-        'climb_route_direction' => ClimbRouteDirection::class,
-        'ratio'                 => RelationRatio::class,
+        // 'event_environment'     => EventEnvironment::class,
+        // 'type_mountain'         => TypeMountain::class,
+        // 'climb_route'           => ClimbRoute::class,
+        // 'climb_route_direction' => ClimbRouteDirection::class,
+        // 'ratio'                 => RelationRatio::class,
         'incident_source_location'=>IncidentSourceLocation::class,
         'province_id'           => 'integer',
         'city_id'               => 'integer',
@@ -135,7 +135,7 @@ class ContactDetail extends Model
         'feet_num'              => 'integer',
         'healthy_people_num'    => 'integer',
         'prisoners_num'         => 'integer',
-        'trapped_in_flood_snow_num' => 'integer',
+
         'caught_homes_num'      => 'integer',
         'caught_in_snow_flood_num' => 'integer',
         'prisoners_num'         => 'integer',
@@ -145,7 +145,7 @@ class ContactDetail extends Model
         'latitude'                        => 'decimal:8',
         'longitude'                       => 'decimal:8',
         'event_people_num'                => 'integer',
-        
+
 'injured_num'                     => 'integer',
         'number_of_vehicles'              => 'integer',
         'number_of_trapped'               => 'integer',

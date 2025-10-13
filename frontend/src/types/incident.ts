@@ -52,12 +52,12 @@ export interface IncidentFormData {
   event_time?: string;             // ساعت احتمالی وقوع حادثه
   contact_type: string;           // نوع تماس (اضطراری/غیراضطراری/مزاحم/ناتمام)
   call_time_info?: string;        // اطلاعات زمانی تماس
-  incident_source_location: string;       // موقعیت منبع اعلام حادثه
-  incident_declaration_source: string;    // منبع اعلام حادثه سازمانی/مردمی
+  incident_source_location: number;       // موقعیت منبع اعلام حادثه
+  incident_declaration_source: number;    // منبع اعلام حادثه سازمانی/مردمی
   organizational_source: string[];        // نوع سازمان
   organizational_type?: string;           // نوع (درون جمعیت/برون جمعیت)
-  public_source: string;                  // نوع منبع مردمی
-  relative_type: string;                  // نوع خویشاوندی
+  public_source: number;                  // نوع منبع مردمی
+  relative_type: number;                  // نوع خویشاوندی
   event_people_num: string;               // تعداد قربانیان
   
   // Fields from contact_details table
@@ -122,6 +122,29 @@ export type IncidentSourceLocation = 'حاضر در محل' | 'خارج شده �
 export type IncidentDeclarationSource = 'سازمانی' | 'مردمی';
 export type PublicSourceType = 'خود فرد حادثه دیده' | 'عبوری حاضر در صحنه' | 'عبوری خارج شده از صحنه' | 'خویشاوندان';
 export type RelativeType = 'والدین' | 'همسر' | 'فرزند' | 'دوستان' | 'برادر' | 'خواهر';
+
+export type MissionCancelReason =
+  | 'TRANSFER_BY_OTHER_ORGS'
+  | 'TRANSFER_BY_PUBLIC'
+  | 'RESPONDED_BY_OPERATIONAL_TEAM'
+  | 'FALSE_INCIDENT'
+  | 'RELEASED_BY_PUBLIC'
+  | 'CALLER_SATISFIED_NO_PRESENCE'
+  | 'VEHICLE_MALFUNCTION'
+  | 'NEW_MISSION_ASSIGNED'
+  | 'TEMPORARY_ROADBLOCK';
+
+export const MISSION_CANCEL_REASONS: { value: MissionCancelReason; label: string; emoji?: string }[] = [
+  { value: 'TRANSFER_BY_OTHER_ORGS', label: 'انتقال مصدوم توسط سایر ارگان ها', emoji: '🚑' },
+  { value: 'TRANSFER_BY_PUBLIC', label: 'انتقال مصدوم توسط مردمی', emoji: '👥' },
+  { value: 'RESPONDED_BY_OPERATIONAL_TEAM', label: 'پاسخگویی به حادثه توسط تیم عملیاتی عامل - سایر تیم های عملیاتی', emoji: '🚨' },
+  { value: 'FALSE_INCIDENT', label: 'حادثه کذب', emoji: '❌' },
+  { value: 'RELEASED_BY_PUBLIC', label: 'رهاسازی مصدوم توسط مردمی', emoji: '🆘' },
+  { value: 'CALLER_SATISFIED_NO_PRESENCE', label: 'رضایت فرد تماس گیرنده نسبت به عدم حضور تیم عملیاتی', emoji: '✅' },
+  { value: 'VEHICLE_MALFUNCTION', label: 'نقص فنی خودرو تیم عملیاتی', emoji: '🔧' },
+  { value: 'NEW_MISSION_ASSIGNED', label: 'ابلاغ ماموریت جدید', emoji: '📋' },
+  { value: 'TEMPORARY_ROADBLOCK', label: 'انسداد موقت مسیر', emoji: '🚧' },
+];
 
 export const ORGANIZATIONAL_SOURCES = [
   { value: "اورژانس", label: "🚑 اورژانس" },

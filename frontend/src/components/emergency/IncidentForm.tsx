@@ -18,11 +18,12 @@ import L from "leaflet";
 import Map from "../Map";
 import { typeEventService, TypeEvent } from "@/services/typeEventService";
 import { NuisanceTypeSection } from "./NuisanceTypeSection";
-import { IncidentFormData } from '@/types/incident'
+import { IncidentFormData, MISSION_CANCEL_REASONS } from '@/types/incident'
+import { FollowUpType, FollowUpTypeLabels } from '@/types/enums/followUpType'
 import { incidentService } from '@/services/incidentService';
 import { IncidentSourceLocation } from '@/types/enums/incidentSourceLocation';
 import { IncidentDeclarationSource } from '@/types/enums/incidentDeclarationSource';
-import { PublicSource } from '@/types/enums/publicSource';
+import { PublicSource, PublicSourceLabels } from '@/types/enums/publicSource';
 import { RelativeType, RelativeTypeLabels } from '@/types/enums/relativeType';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
@@ -884,9 +885,11 @@ export const IncidentForm = () => {
                       <SelectValue placeholder="انتخاب نوع پیگیری" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="حضور تیم عملیاتی در محل حادثه">حضور تیم عملیاتی در محل حادثه</SelectItem>
-                      <SelectItem value="اطلاعات جزئیات حادثه">اطلاعات جزئیات حادثه</SelectItem>
-                      <SelectItem value="نتیجه مأموریت">نتیجه مأموریت</SelectItem>
+                      {Object.values(FollowUpType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {FollowUpTypeLabels[type]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -957,15 +960,11 @@ export const IncidentForm = () => {
                         <SelectValue placeholder="انتخاب دلیل لغو" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="انتقال مصدوم توسط سایر ارگان ها">🚑 انتقال مصدوم توسط سایر ارگان ها</SelectItem>
-                        <SelectItem value="انتقال مصدوم توسط مردمی">👥 انتقال مصدوم توسط مردمی</SelectItem>
-                        <SelectItem value="پاسخگویی به حادثه توسط تیم عملیاتی عامل - سایر تیم های عملیاتی">🚨 پاسخگویی به حادثه توسط تیم عملیاتی عامل - سایر تیم های عملیاتی</SelectItem>
-                        <SelectItem value="حادثه کذب">❌ حادثه کذب</SelectItem>
-                        <SelectItem value="رهاسازی مصدوم توسط مردمی">🆘 رهاسازی مصدوم توسط مردمی</SelectItem>
-                        <SelectItem value="رضایت فرد تماس گیرنده نسبت به عدم حضور تیم عملیاتی">✅ رضایت فرد تماس گیرنده نسبت به عدم حضور تیم عملیاتی</SelectItem>
-                        <SelectItem value="نقص فنی خودرو تیم عملیاتی">🔧 نقص فنی خودرو تیم عملیاتی</SelectItem>
-                        <SelectItem value="ابلاغ ماموریت جدید">📋 ابلاغ ماموریت جدید</SelectItem>
-                        <SelectItem value="انسداد موقت مسیر">🚧 انسداد موقت مسیر</SelectItem>
+                        {MISSION_CANCEL_REASONS.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.emoji ? `${r.emoji} ` : ''}{r.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1036,57 +1035,27 @@ export const IncidentForm = () => {
                           onValueChange={(value) => handleInputChange('cancel_public_source', value)}
                           className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
                         >
-                          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source === 'خود فرد حادثه دیده'
-                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                            : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                            }`}>
-                            <Label htmlFor="cancel-public-injured" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                              <span className="font-medium">خود فرد حادثه دیده</span>
-                              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                <Users className="h-5 w-5 text-orange-600" />
+                          {Object.values(PublicSource).map((ps) => {
+                            const isSelected = formData.cancel_public_source === ps;
+                            const Icon = ps === PublicSource.VICTIM || ps === PublicSource.RELATIVES ? Users : MapPin;
+                            return (
+                              <div
+                                key={ps}
+                                className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${isSelected
+                                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                                  : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                                  }`}
+                              >
+                                <Label htmlFor={`cancel-public-${ps.toLowerCase()}`} className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                  <span className="font-medium">{PublicSourceLabels[ps]}</span>
+                                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                                    <Icon className="h-5 w-5 text-orange-600" />
+                                  </div>
+                                </Label>
+                                <RadioGroupItem id={`cancel-public-${ps.toLowerCase()}`} value={ps} className="h-4 w-4" />
                               </div>
-                            </Label>
-                            <RadioGroupItem id="cancel-public-injured" value="خود فرد حادثه دیده" className="h-4 w-4" />
-                          </div>
-
-                          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source === 'عبوری'
-                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                            : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                            }`}>
-                            <Label htmlFor="cancel-public-present" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                              <span className="font-medium">عبوری</span>
-                              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                <MapPin className="h-5 w-5 text-orange-600" />
-                              </div>
-                            </Label>
-                            <RadioGroupItem id="cancel-public-present" value="عبوری" className="h-4 w-4" />
-                          </div>
-
-                          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source === 'دوستان'
-                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                            : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                            }`}>
-                            <Label htmlFor="cancel-public-departed" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                              <span className="font-medium">دوستان</span>
-                              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                <MapPin className="h-5 w-5 text-orange-600" />
-                              </div>
-                            </Label>
-                            <RadioGroupItem id="cancel-public-departed" value="دوستان" className="h-4 w-4" />
-                          </div>
-
-                          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source === 'خویشاوندان'
-                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                            : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                            }`}>
-                            <Label htmlFor="cancel-public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                              <span className="font-medium">خویشاوندان</span>
-                              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                <Users className="h-5 w-5 text-orange-600" />
-                              </div>
-                            </Label>
-                            <RadioGroupItem id="cancel-public-relatives" value="خویشاوندان" className="h-4 w-4" />
-                          </div>
+                            );
+                          })}
                         </RadioGroup>
 
                         {/* Relative Type Details */}

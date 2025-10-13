@@ -2,8 +2,8 @@
  * Enum for incident declaration source types
  */
 export enum IncidentDeclarationSource {
-  ORGANIZATIONAL = 'ORGANIZATIONAL',
-  PUBLIC = 'PUBLIC',
+  ORGANIZATIONAL = 1,
+  PUBLIC = 2,
 }
 
 /**
@@ -17,11 +17,15 @@ export const IncidentDeclarationSourceLabels: Record<IncidentDeclarationSource, 
 /**
  * Convert old string values to enum values
  */
-export function convertToIncidentDeclarationSourceEnum(value: string): IncidentDeclarationSource | null {
+export function convertToIncidentDeclarationSourceEnum(value: string | number): IncidentDeclarationSource | null {
   switch (value) {
     case 'سازمانی':
       return IncidentDeclarationSource.ORGANIZATIONAL;
     case 'مردمی':
+      return IncidentDeclarationSource.PUBLIC;
+    case 1:
+      return IncidentDeclarationSource.ORGANIZATIONAL;
+    case 2:
       return IncidentDeclarationSource.PUBLIC;
     default:
       return null;

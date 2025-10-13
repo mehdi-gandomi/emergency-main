@@ -1,7 +1,7 @@
 export enum IncidentSourceLocation {
-  PRESENT_AT_SCENE = 'PRESENT_AT_SCENE',
-  LEFT_SCENE = 'LEFT_SCENE',
-  ABSENT_FROM_SCENE = 'ABSENT_FROM_SCENE'
+  PRESENT_AT_SCENE = 1,
+  LEFT_SCENE = 2,
+  ABSENT_FROM_SCENE = 3
 }
 
 // Map for display values in Farsi
@@ -12,13 +12,19 @@ export const IncidentSourceLocationLabels: Record<IncidentSourceLocation, string
 };
 
 // Map for converting old string values to enum
-export const stringToIncidentSourceLocation = (value: string): IncidentSourceLocation | null => {
+export const stringToIncidentSourceLocation = (value: string | number): IncidentSourceLocation | null => {
   switch (value) {
     case 'حاضر در محل':
       return IncidentSourceLocation.PRESENT_AT_SCENE;
     case 'خارج شده از محل':
       return IncidentSourceLocation.LEFT_SCENE;
     case 'عدم حضور در صحنه':
+      return IncidentSourceLocation.ABSENT_FROM_SCENE;
+    case 1:
+      return IncidentSourceLocation.PRESENT_AT_SCENE;
+    case 2:
+      return IncidentSourceLocation.LEFT_SCENE;
+    case 3:
       return IncidentSourceLocation.ABSENT_FROM_SCENE;
     default:
       return null;

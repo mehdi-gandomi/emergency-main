@@ -2,12 +2,12 @@
 
 namespace App\Enums;
 
-enum PublicSource: string
+enum PublicSource: int
 {
-    case VICTIM = 'VICTIM';
-    case PASSERBY = 'PASSERBY';
-    case FRIENDS = 'FRIENDS';
-    case RELATIVES = 'RELATIVES';
+    case VICTIM = 1;
+    case PASSERBY = 2;
+    case FRIENDS = 3;
+    case RELATIVES = 4;
 
     /**
      * Get the display name for the enum value

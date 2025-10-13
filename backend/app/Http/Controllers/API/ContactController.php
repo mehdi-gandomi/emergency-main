@@ -106,7 +106,7 @@ class ContactController extends Controller
             'trauma_member' => ['nullable','string','max:20'],
             'caller_name' => ['nullable','string','max:150'],
             'call_track' => ['nullable','string','max:11'],
-            'ratio' => ['nullable','integer'],
+            'ratio' => ['nullable','integer',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'event_date' => ['nullable','string','max:10'],
             'event_time' => ['nullable','string','max:8'],
             'operator_date' => ['nullable','string','max:10'],
@@ -114,7 +114,7 @@ class ContactController extends Controller
             'user_date' => ['nullable','string','max:10'],
             'user_time' => ['nullable','string','max:8'],
             'mission_notes' => ['nullable','string'],
-            
+
             // NEW fields for contact_details
             'contact_type' => ['nullable','string','max:10'],
             'caller_first_name' => ['nullable','string','max:100'],
@@ -131,7 +131,7 @@ class ContactController extends Controller
             'incident_declaration_source' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Enums\IncidentDeclarationSource::getAllValues())],
             'organizational_source' => ['nullable','array'],
             'public_source' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\PublicSource::getAllValues())],
-            'relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
+            // 'relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'injured_num' => ['nullable','integer'],
             'number_of_vehicles' => ['nullable','integer'],
             'number_of_trapped' => ['nullable','integer'],
@@ -147,7 +147,7 @@ class ContactController extends Controller
             'cancel_organizational_source' => ['nullable','array'],
             'cancel_organizational_type' => ['nullable','string','max:100'],
             'mission_result' => ['nullable','string'],
-            'call_track_detail' => ['nullable','string','max:15'],
+
             'call_track_name' => ['nullable','string','max:200'],
             'follow_up_type' => ['nullable','string','max:200'],
             'nuisance_type' => ['nullable','string','max:100'],
@@ -173,7 +173,6 @@ class ContactController extends Controller
             'cancel_organizational_source' => ['nullable','array'],
             'cancel_organizational_type' => ['nullable','string','max:100'],
             'mission_result' => ['nullable','string'],
-            'call_track_detail' => ['nullable','string','max:15'],
             'call_track_name' => ['nullable','string','max:200'],
             'operational_teams' => ['nullable','array'],
             'mission_types' => ['nullable','array'],
@@ -185,7 +184,7 @@ class ContactController extends Controller
 
         // Create contact
         $contact = Contact::create($contactData);
-        
+
         // Map frontend fields to contact_details and create
         if (!empty(array_filter($detailsData))) {
 
@@ -193,26 +192,26 @@ class ContactController extends Controller
             if ($request->filled('latitude')) $detailsData['lat'] = $request->latitude;
             if ($request->filled('longitude')) $detailsData['lon'] = $request->longitude;
             if ($request->filled('location')) $detailsData['address'] = $request->location;
-            
+
             // Map number fields
             if ($request->filled('injured_num')) $detailsData['injured_num'] = $request->injured_num;
             if ($request->filled('number_of_vehicles')) $detailsData['car_num'] = $request->number_of_vehicles;
             if ($request->filled('number_of_trapped')) $detailsData['prisoners_num'] = $request->number_of_trapped;
             if ($request->filled('number_of_houses')) $detailsData['caught_homes_num'] = $request->number_of_houses;
             if ($request->filled('trapped_in_flood_snow_num')) $detailsData['caught_in_snow_flood_num'] = $request->trapped_in_flood_snow_num;
-            
+
             // Combine caller names
             if ($request->filled('caller_first_name') || $request->filled('caller_last_name')) {
                 $detailsData['caller_name'] = trim(($request->caller_first_name ?? '') . ' ' . ($request->caller_last_name ?? ''));
             }
-            
+
             // Handle call_time_info - separate into date and time
             // if ($request->filled('call_time_info')) {
             //     $call_time = \Carbon\Carbon::parse($request->call_time_info);
             //     $detailsData['event_date'] = $call_time->format('Y/m/d');
             //     $detailsData['event_time'] = $call_time->format('H:i:s');
             // }
-            
+
             // Handle time_of_incident
             // if ($request->filled('time_of_incident')) {
             //     $incident_time = \Carbon\Carbon::parse($request->time_of_incident);
@@ -221,7 +220,7 @@ class ContactController extends Controller
             // }
 
             $detailsData['contact_id'] = $contact->id;
-            
+
             ContactDetail::create($detailsData);
         }
 

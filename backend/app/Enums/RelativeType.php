@@ -2,14 +2,14 @@
 
 namespace App\Enums;
 
-enum RelativeType: string
+enum RelativeType: int
 {
-    case PARENTS = 'والدین';
-    case SPOUSE = 'همسر';
-    case CHILD = 'فرزند';
-    case FRIENDS = 'دوستان';
-    case BROTHER = 'برادر';
-    case SISTER = 'خواهر';
+    case PARENTS = 1;
+    case SPOUSE = 2;
+    case CHILD = 3;
+    case FRIENDS = 7;
+    case BROTHER = 4;
+    case SISTER = 5;
 
     /**
      * Get display name with emoji

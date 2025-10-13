@@ -2,10 +2,10 @@
 
 namespace App\Enums;
 
-enum IncidentDeclarationSource: string
+enum IncidentDeclarationSource: int
 {
-    case ORGANIZATIONAL = 'ORGANIZATIONAL';
-    case PUBLIC = 'PUBLIC';
+    case ORGANIZATIONAL = 1;
+    case PUBLIC = 2;
 
     /**
      * Get the display name in Farsi
@@ -23,9 +23,6 @@ enum IncidentDeclarationSource: string
      */
     public static function getAllValues(): array
     {
-        return [
-            self::ORGANIZATIONAL->value,
-            self::PUBLIC->value,
-        ];
+        return array_column(self::cases(), 'value');
     }
 }

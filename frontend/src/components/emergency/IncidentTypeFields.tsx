@@ -1,18 +1,30 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IncidentFormData } from "@/types/incident";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, X } from "lucide-react";
+import { IncidentFormData, COOPERATING_ORGANIZATIONS } from "@/types/incident";
 
 interface IncidentTypeFieldsProps {
   formData: IncidentFormData;
-  onInputChange: (field: keyof IncidentFormData, value: string | number) => void;
+  onInputChange: (field: keyof IncidentFormData, value: string | number | string[]) => void;
 }
 
 export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFieldsProps) => {
   if (!formData.report_event_type) {
     return null;
   }
+
+  const onMultiSelectChange = (field: keyof IncidentFormData, value: string) => {
+    const currentValues = Array.isArray(formData[field]) ? (formData[field] as string[]) : [];
+    const exists = currentValues.includes(value);
+    const nextValues = exists ? currentValues.filter((v) => v !== value) : [...currentValues, value];
+    onInputChange(field, nextValues);
+  };
 
   return (
     <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-r-4 border-blue-500">
@@ -114,28 +126,68 @@ export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFiel
         />
       </div>
 
-      {/* Cooperating Organizations */}
+      {/* Cooperating Organizations - multiselect */}
       <div className="space-y-2">
         <Label htmlFor="cooperatingOrganizations" className="text-sm font-medium text-right">
           ارگانهای همکار حاضر در صحنه حادثه
         </Label>
-        <Select onValueChange={(value) => onInputChange('cooperating_organizations', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="انتخاب ارگان همکار" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="اورژانس">🚑 اورژانس</SelectItem>
-            <SelectItem value="نیروی انتظامی">🚔 نیروی انتظامی</SelectItem>
-            <SelectItem value="آتش نشانی">🔥 آتش نشانی</SelectItem>
-            <SelectItem value="پلیس راه">🛣️ پلیس راه</SelectItem>
-            <SelectItem value="راهداری">🛣️ راهداری</SelectItem>
-            <SelectItem value="فرمانداری">🏛️ فرمانداری</SelectItem>
-            <SelectItem value="مدیریت بحران">⚠️ مدیریت بحران</SelectItem>
-            <SelectItem value="سازمان امدادونجات">🏢 سازمان امدادونجات</SelectItem>
-            <SelectItem value="هلال احمر">🔴 هلال احمر</SelectItem>
-            <SelectItem value="سایر">❓ سایر</SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger className="popover-trigger-full">
+            <Button
+              variant="outline"
+              role="combobox"
+              className="h-10 w-full justify-between text-right"
+            >
+              {formData.cooperating_organizations?.length > 0
+                ? `${formData.cooperating_organizations.length} مورد انتخاب شده`
+                : "انتخاب ارگان همکار"}
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="popover-content-full p-0" align="start">
+            <Command>
+              <CommandInput placeholder="جستجو..." className="h-9" />
+              <CommandList>
+                <CommandEmpty>موردی یافت نشد.</CommandEmpty>
+                <CommandGroup>
+                  {COOPERATING_ORGANIZATIONS.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      onSelect={() => onMultiSelectChange('cooperating_organizations', option.value)}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center">
+                        <Checkbox
+                          checked={formData.cooperating_organizations?.includes(option.value)}
+                          className="ml-2"
+                        />
+                        <span>{option.label}</span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {formData.cooperating_organizations?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {formData.cooperating_organizations.map((item) => {
+              const option = COOPERATING_ORGANIZATIONS.find((opt) => opt.value === item);
+              return (
+                <Badge key={item} variant="secondary" className="flex items-center gap-1">
+                  {option?.label ?? item}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-red-500"
+                    onClick={() => onMultiSelectChange('cooperating_organizations', item)}
+                  />
+                </Badge>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

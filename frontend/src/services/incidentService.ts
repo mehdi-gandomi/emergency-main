@@ -153,7 +153,7 @@ private  toEnglishDigits(str) {
       organizational_source: formData.organizational_source || [],
       organizational_type: formData.organizational_type || null,
       public_source: formData.public_source || null,
-      relative_type: formData.relative_type || null,
+      ratio: formData.relative_type || null,
       injured_num: formData.injured_num ? parseInt(formData.injured_num) : null,
       car_num: formData.car_num ? parseInt(formData.car_num) : null,
       caught_homes_num: formData.caught_homes_num ? parseInt(formData.caught_homes_num) : null,
