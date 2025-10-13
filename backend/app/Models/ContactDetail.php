@@ -10,6 +10,7 @@ use App\Enums\ContactDetails\TypeMountain;
 use App\Enums\ContactDetails\ClimbRoute;
 use App\Enums\ContactDetails\ClimbRouteDirection;
 use App\Enums\ContactDetails\RelationRatio;
+use App\Enums\IncidentSourceLocation;
 
 class ContactDetail extends Model
 {
@@ -73,24 +74,20 @@ class ContactDetail extends Model
         'organizations_in_place', // ارگانهای حاضر در صحنه,
         'mission_notes', //ملاحظات ماموریت
         // NEW fields for contact_details from frontend
-        'contact_type',                    // نوع تماس
-        'caller_first_name',              // نام تماس گیرنده
-        'caller_last_name',               // نام خانوادگی تماس گیرنده
-        'caller_age',                     // سن تماس گیرنده
-        'location_description',           // توضیحات موقعیت
+        
+        'address',           // توضیحات موقعیت
         'latitude',                       // عرض جغرافیایی (جدید)
         'longitude',                      // طول جغرافیایی (جدید)
         'priority',                       // اولویت
-        'victims',                        // تعداد قربانیان
-        'time_of_incident',               // زمان وقوع حادثه
+        'event_people_num',               // تعداد قربانیان
+        
         'call_time_info',                 // اطلاعات زمانی تماس
         'incident_source_location',       // موقعیت منبع اعلام حادثه
         'incident_declaration_source',    // منبع اعلام حادثه
         'organizational_source',          // منبع سازمانی (JSON)
-        'organizational_type',            // نوع سازمان
         'public_source',                  // منبع مردمی
         'relative_type_detail',           // جزئیات نوع خویشاوندی
-        'number_of_injured',              // تعداد مجروحان
+        'injured_num',                    // تعداد مجروحان
         'number_of_vehicles',             // تعداد خودروها
         'number_of_trapped',              // تعداد محبوسین
         'number_of_houses',               // تعداد خانه‌ها
@@ -124,6 +121,7 @@ class ContactDetail extends Model
         'climb_route'           => ClimbRoute::class,
         'climb_route_direction' => ClimbRouteDirection::class,
         'ratio'                 => RelationRatio::class,
+        'incident_source_location'=>IncidentSourceLocation::class,
         'province_id'           => 'integer',
         'city_id'               => 'integer',
         'city_id_old'           => 'integer',
@@ -146,8 +144,9 @@ class ContactDetail extends Model
         'caller_age'                      => 'integer',
         'latitude'                        => 'decimal:8',
         'longitude'                       => 'decimal:8',
-        'victims'                         => 'integer',
-        'number_of_injured'               => 'integer',
+        'event_people_num'                => 'integer',
+        
+'injured_num'                     => 'integer',
         'number_of_vehicles'              => 'integer',
         'number_of_trapped'               => 'integer',
         'number_of_houses'                => 'integer',
@@ -158,9 +157,8 @@ class ContactDetail extends Model
         'mission_types'                   => 'array',
         'required_vehicles'               => 'array',
         'organizations_in_place_detail'   => 'array',
-        'needs_other_provinces'           => 'boolean',
-        'call_time_info'                  => 'datetime',
-        'time_of_incident'                => 'datetime',
+        'cooperating_organizations'       => 'array',
+        'needs_other_provinces'           => 'boolean'
     ];
 
     public function contact(): BelongsTo

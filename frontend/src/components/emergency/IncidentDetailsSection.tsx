@@ -42,14 +42,14 @@ export const IncidentDetailsSection = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* تعداد افراد حادثه دیده */}
         <div className="space-y-2">
-          <Label htmlFor="victims" className="text-sm font-medium flex items-center gap-2 justify-end">
+          <Label htmlFor="event_people_num" className="text-sm font-medium flex items-center gap-2 justify-end">
             <span>تعداد افراد حادثه دیده</span>
             <Users className="h-4 w-4" />
           </Label>
           <Input
-            id="victims"
-            onChange={(e) => onInputChange('victims', e.target.value)}
-            value={formData.victims}
+            id="event_people_num"
+            onChange={(e) => onInputChange('event_people_num', e.target.value)}
+            value={formData.event_people_num}
             placeholder="مثال: 2"
             className="h-10 text-right"
             dir="ltr"
@@ -58,14 +58,14 @@ export const IncidentDetailsSection = ({
 
         {/* تعداد مصدوم */}
         <div className="space-y-2">
-          <Label htmlFor="number_of_injured" className="text-sm font-medium flex items-center gap-2 justify-end">
+          <Label htmlFor="injured_num" className="text-sm font-medium flex items-center gap-2 justify-end">
             <span>تعداد مصدوم</span>
             <Users className="h-4 w-4" />
           </Label>
           <Input
-            id="number_of_injured"
-            onChange={(e) => onInputChange('number_of_injured', e.target.value)}
-            value={formData.number_of_injured}
+            id="injured_num"
+            onChange={(e) => onInputChange('injured_num', e.target.value)}
+            value={formData.injured_num}
             placeholder="مثال: 2"
             className="h-10 text-right"
             dir="ltr"
@@ -73,7 +73,7 @@ export const IncidentDetailsSection = ({
         </div>
 
         {/* شکایت اصلی - conditional */}
-        {formData.victims == '1' && (
+        {formData.event_people_num == '1' && (
           <div className="space-y-2">
             <Label htmlFor="cc" className="text-sm font-medium flex items-center gap-2 justify-end">
               <span>شکایت اصلی</span>

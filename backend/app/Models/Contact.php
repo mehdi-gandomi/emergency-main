@@ -45,14 +45,13 @@ class Contact extends Model
         'nuisance_type',          // نوع مزاحمت
         
         // Additional fields from IncidentFormData
-        'caller_first_name',   // نام تماس گیرنده
-        'caller_last_name',    // نام خانوادگی تماس گیرنده
+        'caller_name',         // نام تماس گیرنده
+        'caller_lastname',     // نام خانوادگی تماس گیرنده
         'location',            // موقعیت مکانی
         'latitude',            // عرض جغرافیایی
         'longitude',           // طول جغرافیایی
         'priority',            // سطح اولویت
         'victims',             // تعداد مجروحان
-        'time_of_incident',    // زمان وقوع حادثه
         'contact_type',        // نوع تماس (اضطراری/غیراضطراری/مزاحم/ناتمام)
         'call_time_info',      // اطلاعات زمانی تماس
         'incident_source_location', // موقعیت منبع اعلام حادثه
@@ -66,7 +65,6 @@ class Contact extends Model
         'number_of_houses',    // تعداد منازل درگیر
         'main_complaint',      // شکایت اصلی
         'cooperating_organizations', // ارگانهای همکار
-        'caller_age',          // سن تماس گیرنده
         'victims_list',        // لیست حادثه دیدگان (JSON)
     ];
 
@@ -84,21 +82,23 @@ class Contact extends Model
         'event_repetitive_id' => 'integer',
         'created_personnel_id' => 'integer',
         
+        // Date fields
+        'date_call'       => 'string',
+        'time_call'       => 'string',
+        'time_of_incident' => 'string',
+        
         // New field casts
         'city_id'         => 'integer',
         'town_id'         => 'integer', 
         'village_id'      => 'integer',
         'latitude'        => 'decimal:8',
         'longitude'       => 'decimal:8',
-        'caller_age'      => 'integer',
         'number_of_injured' => 'integer',
         'number_of_vehicles' => 'integer',
         'number_of_trapped' => 'integer',
         'number_of_houses' => 'integer',
         'organizational_source' => 'array', // JSON array
         'victims_list'    => 'array',     // JSON array
-        'call_time_info'  => 'datetime',
-        'time_of_incident' => 'datetime',
     ];
 
     public function details(): HasOne

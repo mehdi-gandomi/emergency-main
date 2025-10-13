@@ -38,31 +38,61 @@ export interface IncidentFormData {
   prisoners_num?: string;         // تعداد افراد محبوس شده
   organizations_in_place?: string[]; // ارگانهای در محل
   // Additional UI fields - now using snake_case to match database
-  caller_first_name: string;      // نام تماس گیرنده
-  caller_last_name: string;       // نام خانوادگی تماس گیرنده
+  caller_name: string;      // نام تماس گیرنده
+  caller_lastname: string;       // نام خانوادگی تماس گیرنده
   location: string;               // موقعیت مکانی
   latitude: string;               // عرض جغرافیایی
   longitude: string;              // طول جغرافیایی
   priority: string;               // سطح اولویت
   car_num: string|number;                // تعداد خودروهای درگیر
-  victims: string|number;                // تعداد مجروحان
+  injured_num: string|number;            // تعداد مجروحان
   cc: string;                // شکایت اصلی
   time_of_incident: string;       // زمان وقوع حادثه
+  event_date?: string;             // تاریخ احتمالی وقوع حادثه
+  event_time?: string;             // ساعت احتمالی وقوع حادثه
   contact_type: string;           // نوع تماس (اضطراری/غیراضطراری/مزاحم/ناتمام)
   call_time_info?: string;        // اطلاعات زمانی تماس
   incident_source_location: string;       // موقعیت منبع اعلام حادثه
-  incident_declaration_source: string;    // منبع اعلام حادثه
+  incident_declaration_source: string;    // منبع اعلام حادثه سازمانی/مردمی
   organizational_source: string[];        // نوع سازمان
   organizational_type?: string;           // نوع (درون جمعیت/برون جمعیت)
   public_source: string;                  // نوع منبع مردمی
   relative_type: string;                  // نوع خویشاوندی
-  number_of_injured: string;              // تعداد افراد حادثه دیده
-  number_of_vehicles: string;             // تعداد خودروهای درگیر
-  number_of_trapped: string;              // تعداد افراد محبوس شده
-  number_of_houses: string;               // تعداد منازل درگیر
+  event_people_num: string;               // تعداد قربانیان
+  
+  // Fields from contact_details table
+  height?: string;                // ارتفاع
+  width?: string;                 // عرض جغرافیایی (دیگر)
+  length?: string;                // طول جغرافیایی (دیگر)
+  main_street?: string;           // خیابان اصلی
+  sub_street?: string;            // خیابان فرعی
+  address?: string;               // آدرس
+  event_environment_type?: string; // محیط حادثه
+  event_environment_name?: string; // نام محیط حادثه
+  type_mountain?: string;         // نوع کوهستان
+  climb_route?: string;           // مسیر صعود
+  climb_route_direction?: string; // جهت مسیر صعود
+  event_place?: string;           // محل حادثه
+  event_place_name?: string;      // نام محل حادثه
+  axis_name?: string;             // نام محور
+  city_start_id?: string;         // شهر مبدا
+  city_end_id?: string;           // شهر مقصد
+  km_axis?: string;               // کیلومتر محور
+  nech_name?: string;             // نام گردنه
+  parish_name?: string;           // نام محله
+  plaque?: string;                // پلاک
+  fgh_name?: string;              // نام کارخانه/باغ/منزل مسکونی
+  feet_num?: string|number;       // تعداد فوتی
+  healthy_people_num?: string|number; // تعداد افراد سالم
+  trauma_type?: string;           // نوع تروما یا مصدومیت
+  trauma_member?: string;         // عضو دچار تروما شده
+  ratio?: string;                 // نسبت با فرد حادثه دیده
+  operator_date?: string;         // تاریخ ارجاع به اپراتور دیسپچ
+  operator_time?: string;         // ساعت ارجاع به اپراتور دیسپچ
+  
   main_complaint: string;                 // شکایت اصلی
-  cooperating_organizations: string;      // ارگانهای همکار
-  caller_age: string;                     // سن تماس گیرنده
+  cooperating_organizations: string[];    // ارگانهای همکار
+  
   trapped_in_flood_snow_num: string;      // تعداد افراد گرفتار شده در سیل / برف
   victims_list: VictimInfo[];             // لیست حادثه دیدگان
    // Operational recommendations

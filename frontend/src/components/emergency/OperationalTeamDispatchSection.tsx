@@ -7,6 +7,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Handshake, ChevronDown, X } from "lucide-react";
+import { IncidentDeclarationSource, IncidentDeclarationSourceLabels } from "@/types/enums/incidentDeclarationSource";
+import { PublicSource, PublicSourceLabels } from "@/types/enums/publicSource";
+import { IncidentSourceLocation, IncidentSourceLocationLabels } from "@/types/enums/incidentSourceLocation";
+import { RelativeType, RelativeTypeLabels } from "@/types/enums/relativeType";
 import { IncidentFormData } from "@/types/incident";
 import { ORGANIZATIONAL_SOURCES } from "@/types/incident";
 
@@ -61,7 +65,7 @@ export const OperationalTeamDispatchSection = ({
           className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === 'حاضر در محل' 
+            formData.incident_source_location === IncidentSourceLocation.PRESENT_AT_SCENE 
               ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
               : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
           }`}>
@@ -71,11 +75,11 @@ export const OperationalTeamDispatchSection = ({
                 <MapPin className="h-5 w-5 text-emerald-600" />
               </div>
             </Label>
-            <RadioGroupItem id="location-present" value="حاضر در محل" className="h-4 w-4" />
+            <RadioGroupItem id="location-present" value="PRESENT_AT_SCENE" className="h-4 w-4" />
           </div>
           
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === 'خارج شده از محل' 
+            formData.incident_source_location === IncidentSourceLocation.LEFT_SCENE 
               ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
               : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
           }`}>
@@ -85,11 +89,11 @@ export const OperationalTeamDispatchSection = ({
                 <MapPin className="h-5 w-5 text-emerald-600" />
               </div>
             </Label>
-            <RadioGroupItem id="location-departed" value="خارج شده از محل" className="h-4 w-4" />
+            <RadioGroupItem id="location-departed" value="LEFT_SCENE" className="h-4 w-4" />
           </div>
           
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === 'عدم حضور در صحنه' 
+            formData.incident_source_location === IncidentSourceLocation.ABSENT_FROM_SCENE 
               ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
               : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
           }`}>
@@ -99,7 +103,7 @@ export const OperationalTeamDispatchSection = ({
                 <MapPin className="h-5 w-5 text-emerald-600" />
               </div>
             </Label>
-            <RadioGroupItem id="location-absent" value="عدم حضور در صحنه" className="h-4 w-4" />
+            <RadioGroupItem id="location-absent" value="ABSENT_FROM_SCENE" className="h-4 w-4" />
           </div>
         </RadioGroup>
       </div>
@@ -116,31 +120,31 @@ export const OperationalTeamDispatchSection = ({
           className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_declaration_source === 'سازمانی' 
+            formData.incident_declaration_source === IncidentDeclarationSource.ORGANIZATIONAL 
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
               : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
           }`}>
             <Label htmlFor="source-organizational" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-              <span className="font-medium">سازمانی</span>
+              <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.ORGANIZATIONAL]}</span>
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                 <Handshake className="h-5 w-5 text-blue-600" />
               </div>
             </Label>
-            <RadioGroupItem id="source-organizational" value="سازمانی" className="h-4 w-4" />
+            <RadioGroupItem id="source-organizational" value={IncidentDeclarationSource.ORGANIZATIONAL} className="h-4 w-4" />
           </div>
           
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_declaration_source === 'مردمی' 
+            formData.incident_declaration_source === IncidentDeclarationSource.PUBLIC 
               ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
               : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
           }`}>
             <Label htmlFor="source-public" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-              <span className="font-medium">مردمی</span>
+              <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.PUBLIC]}</span>
               <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                 <Users className="h-5 w-5 text-green-600" />
               </div>
             </Label>
-            <RadioGroupItem id="source-public" value="مردمی" className="h-4 w-4" />
+            <RadioGroupItem id="source-public" value={IncidentDeclarationSource.PUBLIC} className="h-4 w-4" />
           </div>
         </RadioGroup>
         {formData.incident_declaration_source === '' && (
@@ -151,7 +155,7 @@ export const OperationalTeamDispatchSection = ({
       </div>
 
       {/* Organizational Source Details */}
-      {formData.incident_declaration_source === 'سازمانی' && (
+      {formData.incident_declaration_source === IncidentDeclarationSource.ORGANIZATIONAL && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* نوع */}
         <div className="space-y-2">
@@ -240,7 +244,7 @@ export const OperationalTeamDispatchSection = ({
       )}
 
       {/* Public Source Details */}
-      {formData.incident_declaration_source === 'مردمی' && (
+      {formData.incident_declaration_source === IncidentDeclarationSource.PUBLIC && (
         <div className="space-y-2">
           <Label htmlFor="public_source" className="text-sm font-medium text-right">
             نوع منبع مردمی
@@ -252,64 +256,64 @@ export const OperationalTeamDispatchSection = ({
             className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
           >
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === 'خود فرد حادثه دیده' 
+              formData.public_source === PublicSource.VICTIM 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
             }`}>
               <Label htmlFor="public-injured" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">خود فرد حادثه دیده</span>
+                <span className="font-medium">{PublicSourceLabels[PublicSource.VICTIM]}</span>
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                   <Users className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-injured" value="خود فرد حادثه دیده" className="h-4 w-4" />
+              <RadioGroupItem id="public-injured" value={PublicSource.VICTIM} className="h-4 w-4" />
             </div>
             
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === 'عبوری' 
+              formData.public_source === PublicSource.PASSERBY 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
             }`}>
               <Label htmlFor="public-present" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">عبوری</span>
+                <span className="font-medium">{PublicSourceLabels[PublicSource.PASSERBY]}</span>
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                   <MapPin className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-present" value="عبوری" className="h-4 w-4" />
+              <RadioGroupItem id="public-present" value={PublicSource.PASSERBY} className="h-4 w-4" />
             </div>
             
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === 'دوستان' 
+              formData.public_source === PublicSource.FRIENDS 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
             }`}>
               <Label htmlFor="public-departed" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">دوستان</span>
+                <span className="font-medium">{PublicSourceLabels[PublicSource.FRIENDS]}</span>
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                   <MapPin className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-departed" value="دوستان" className="h-4 w-4" />
+              <RadioGroupItem id="public-departed" value={PublicSource.FRIENDS} className="h-4 w-4" />
             </div>
             
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === 'خویشاوندان' 
+              formData.public_source === PublicSource.RELATIVES 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                 : 'border-slate-700 bg-background hover:border-slate-300'
             }`}>
               <Label htmlFor="public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">خویشاوندان</span>
+                <span className="font-medium">{PublicSourceLabels[PublicSource.RELATIVES]}</span>
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                   <Users className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-relatives" value="خویشاوندان" className="h-4 w-4" />
+              <RadioGroupItem id="public-relatives" value={PublicSource.RELATIVES} className="h-4 w-4" />
             </div>
           </RadioGroup>
 
           {/* Relative Type Details */}
-          {formData.public_source === 'خویشاوندان' && (
+          {formData.public_source === PublicSource.RELATIVES && (
             <div className="space-y-2">
               <Label htmlFor="relative_type" className="text-sm font-medium text-right">
                 نوع خویشاوندی
@@ -319,12 +323,11 @@ export const OperationalTeamDispatchSection = ({
                   <SelectValue placeholder="انتخاب نوع خویشاوندی" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="والدین">👨‍👩‍👧‍👦 والدین</SelectItem>
-                  <SelectItem value="همسر">💑 همسر</SelectItem>
-                  <SelectItem value="فرزند">👶 فرزند</SelectItem>
-                  <SelectItem value="دوستان">👥 دوستان</SelectItem>
-                  <SelectItem value="برادر">👨‍👦 برادر</SelectItem>
-                  <SelectItem value="خواهر">👩‍👧 خواهر</SelectItem>
+                  {Object.values(RelativeType).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {RelativeTypeLabels[type]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

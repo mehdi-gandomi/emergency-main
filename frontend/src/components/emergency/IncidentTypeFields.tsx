@@ -45,8 +45,8 @@ export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFiel
             type="number"
             min="0"
             placeholder="تعداد خودروها"
-            value={formData.number_of_vehicles}
-            onChange={(e) => onInputChange('number_of_vehicles', e.target.value)}
+            value={formData.car_num}
+            onChange={(e) => onInputChange('car_num', e.target.value)}
             className="h-10 text-right"
           />
         </div>
@@ -75,8 +75,8 @@ export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFiel
             type="number"
             min="0"
             placeholder="تعداد منازل"
-            value={formData.number_of_houses}
-            onChange={(e) => onInputChange('number_of_houses', e.target.value)}
+            value={formData.caught_homes_num}
+            onChange={(e) => onInputChange('caught_homes_num', e.target.value)}
             className="h-10 text-right"
           />
         </div>

@@ -70,8 +70,8 @@ class ContactController extends Controller
             'city_id' => ['nullable','integer'],
             'town_id' => ['nullable','integer'],
             'village_id' => ['nullable','integer'],
-            'lat' => ['nullable','string','max:255'],
-            'lon' => ['nullable','string','max:255'],
+            'lat' => ['nullable'],
+            'lon' => ['nullable'],
             'height' => ['nullable','string','max:6'],
             'width' => ['nullable','string','max:12'],
             'length' => ['nullable','string','max:12'],
@@ -120,20 +120,19 @@ class ContactController extends Controller
             'caller_first_name' => ['nullable','string','max:100'],
             'caller_last_name' => ['nullable','string','max:100'],
             'caller_age' => ['nullable','integer'],
-            'location_description' => ['nullable','string','max:255'],
+            'address' => ['nullable','string','max:255'],
             'latitude' => ['nullable','numeric'],
             'longitude' => ['nullable','numeric'],
             'priority' => ['nullable','string','max:10'],
-            'victims' => ['nullable','integer'],
+            'event_people_num' => ['nullable','integer'],
             'time_of_incident' => ['nullable','string'],
-            'call_time_info' => ['nullable','string'],
-            'incident_source_location' => ['nullable','string','max:255'],
-            'incident_declaration_source' => ['nullable','string','max:255'],
+            // 'call_time_info' => ['nullable','string'],
+            'incident_source_location' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
+            'incident_declaration_source' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Enums\IncidentDeclarationSource::getAllValues())],
             'organizational_source' => ['nullable','array'],
-            'organizational_type' => ['nullable','string','max:100'],
-            'public_source' => ['nullable','string','max:255'],
-            'relative_type_detail' => ['nullable','string','max:100'],
-            'number_of_injured' => ['nullable','integer'],
+            'public_source' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\PublicSource::getAllValues())],
+            'relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
+            'injured_num' => ['nullable','integer'],
             'number_of_vehicles' => ['nullable','integer'],
             'number_of_trapped' => ['nullable','integer'],
             'number_of_houses' => ['nullable','integer'],
@@ -144,7 +143,7 @@ class ContactController extends Controller
             'cancel_source' => ['nullable','string','max:100'],
             'cancel_phone_number' => ['nullable','string','max:15'],
             'cancel_public_source' => ['nullable','string','max:100'],
-            'cancel_relative_type' => ['nullable','string','max:100'],
+            'cancel_relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'cancel_organizational_source' => ['nullable','array'],
             'cancel_organizational_type' => ['nullable','string','max:100'],
             'mission_result' => ['nullable','string'],
@@ -163,8 +162,8 @@ class ContactController extends Controller
             'follow_up_type' => ['nullable','string','max:200'],
             'organizational_type' => ['nullable','string','max:100'],
             'relative_type_detail' => ['nullable','string','max:100'],
-            'location_description' => ['nullable','string','max:255'],
-            'incident_source_location' => ['nullable','string','max:255'],
+            'address' => ['nullable','string','max:255'],
+            'incident_source_location' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'incident_declaration_source' => ['nullable','string','max:255'],
             'public_source' => ['nullable','string','max:255'],
             'cancel_source' => ['nullable','string','max:100'],
@@ -186,17 +185,17 @@ class ContactController extends Controller
 
         // Create contact
         $contact = Contact::create($contactData);
-
+        
         // Map frontend fields to contact_details and create
         if (!empty(array_filter($detailsData))) {
 
             // Field mappings from frontend to contact_details
             if ($request->filled('latitude')) $detailsData['lat'] = $request->latitude;
             if ($request->filled('longitude')) $detailsData['lon'] = $request->longitude;
-            if ($request->filled('location')) $detailsData['location_description'] = $request->location;
+            if ($request->filled('location')) $detailsData['address'] = $request->location;
             
             // Map number fields
-            if ($request->filled('number_of_injured')) $detailsData['injured_num'] = $request->number_of_injured;
+            if ($request->filled('injured_num')) $detailsData['injured_num'] = $request->injured_num;
             if ($request->filled('number_of_vehicles')) $detailsData['car_num'] = $request->number_of_vehicles;
             if ($request->filled('number_of_trapped')) $detailsData['prisoners_num'] = $request->number_of_trapped;
             if ($request->filled('number_of_houses')) $detailsData['caught_homes_num'] = $request->number_of_houses;
@@ -208,21 +207,21 @@ class ContactController extends Controller
             }
             
             // Handle call_time_info - separate into date and time
-            if ($request->filled('call_time_info')) {
-                $call_time = \Carbon\Carbon::parse($request->call_time_info);
-                $detailsData['event_date'] = $call_time->format('Y/m/d');
-                $detailsData['event_time'] = $call_time->format('H:i:s');
-            }
+            // if ($request->filled('call_time_info')) {
+            //     $call_time = \Carbon\Carbon::parse($request->call_time_info);
+            //     $detailsData['event_date'] = $call_time->format('Y/m/d');
+            //     $detailsData['event_time'] = $call_time->format('H:i:s');
+            // }
             
             // Handle time_of_incident
-            if ($request->filled('time_of_incident')) {
-                $incident_time = \Carbon\Carbon::parse($request->time_of_incident);
-                $detailsData['event_date'] = $incident_time->format('Y/m/d');
-                $detailsData['event_time'] = $incident_time->format('H:i:s');
-            }
+            // if ($request->filled('time_of_incident')) {
+            //     $incident_time = \Carbon\Carbon::parse($request->time_of_incident);
+            //     $detailsData['event_date'] = $incident_time->format('Y/m/d');
+            //     $detailsData['event_time'] = $incident_time->format('H:i:s');
+            // }
 
             $detailsData['contact_id'] = $contact->id;
-            dd($detailsData);
+            
             ContactDetail::create($detailsData);
         }
 

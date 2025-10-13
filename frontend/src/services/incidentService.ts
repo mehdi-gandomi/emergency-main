@@ -17,8 +17,8 @@ export interface ContactResponse {
   contact: {
     id: number;
     mobile: string;
-    caller_first_name: string;
-    caller_last_name: string;
+    caller_name: string;
+  caller_lastname: string;
     contact_type: string;
     priority: string;
     location: string;
@@ -135,22 +135,17 @@ private  toEnglishDigits(str) {
       city_id: formData.city_id ? parseInt(formData.city_id) : null,
       town_id: formData.town_id ? parseInt(formData.town_id) : null,
       village_id: formData.village_id ? parseInt(formData.village_id) : null,
-      lat: formData.latitude || null,
-      lon: formData.longitude || null,
-      address: formData.location || null,
-      caller_name: formData.caller_first_name && formData.caller_last_name 
-        ? `${formData.caller_first_name} ${formData.caller_last_name}` 
-        : null,
+     
+      
+      caller_name: formData.caller_name || null,
+      caller_lastname: formData.caller_lastname || null,
       
       // New contact details fields
-      caller_first_name: formData.caller_first_name || null,
-      caller_last_name: formData.caller_last_name || null,
-      caller_age: formData.caller_age ? parseInt(formData.caller_age) : null,
-      location_description: formData.location || null,
-      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+  
+      address: formData.location || null,
+      lat: formData.latitude ? parseFloat(formData.latitude) : null,
+      lon: formData.longitude ? parseFloat(formData.longitude) : null,
       priority: formData.priority || null,
-      victims: formData.victims ? parseInt(formData.victims.toString()) : null,
       time_of_incident: formData.time_of_incident || null,
       call_time_info: formData.call_time_info || null,
       incident_source_location: formData.incident_source_location || null,
@@ -158,11 +153,10 @@ private  toEnglishDigits(str) {
       organizational_source: formData.organizational_source || [],
       organizational_type: formData.organizational_type || null,
       public_source: formData.public_source || null,
-      relative_type_detail: formData.relative_type || null,
-      number_of_injured: formData.number_of_injured ? parseInt(formData.number_of_injured) : null,
-      number_of_vehicles: formData.number_of_vehicles ? parseInt(formData.number_of_vehicles) : null,
-      number_of_trapped: formData.number_of_trapped ? parseInt(formData.number_of_trapped) : null,
-      number_of_houses: formData.number_of_houses ? parseInt(formData.number_of_houses) : null,
+      relative_type: formData.relative_type || null,
+      injured_num: formData.injured_num ? parseInt(formData.injured_num) : null,
+      car_num: formData.car_num ? parseInt(formData.car_num) : null,
+      caught_homes_num: formData.caught_homes_num ? parseInt(formData.caught_homes_num) : null,
       main_complaint: formData.main_complaint || null,
       cooperating_organizations: formData.cooperating_organizations || null,
       victims_list: formData.victims_list || [],
@@ -196,6 +190,12 @@ private  toEnglishDigits(str) {
       callDateInfo=callDateInfo.split(" ")
       apiData.date_call=callDateInfo[0]
       apiData.time_call=callDateInfo[1]
+    }
+    if(apiData.time_of_incident){
+      let callDateInfo=this.toEnglishDigits(apiData.time_of_incident);
+      callDateInfo=callDateInfo.split(" ")
+      apiData.event_date=callDateInfo[0]
+      apiData.event_time=callDateInfo[1]
     }
     // Remove null and undefined values to reduce payload size
     // Object.keys(apiData).forEach(key => {

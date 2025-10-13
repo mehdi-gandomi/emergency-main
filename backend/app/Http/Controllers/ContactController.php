@@ -184,7 +184,7 @@ class ContactController extends Controller
             'time_of_incident' => 'nullable|date',
             'call_time_info' => 'nullable|date',
             'incident_source_location' => 'nullable|string|max:100',
-            'incident_declaration_source' => 'nullable|string|in:سازمانی,مردمی',
+            'incident_declaration_source' => ['nullable', 'string', Rule::in(\App\Enums\IncidentDeclarationSource::getAllValues())],
             'organizational_source' => 'nullable|array',
             'organizational_source.*' => 'string',
             'public_source' => 'nullable|string|max:100',

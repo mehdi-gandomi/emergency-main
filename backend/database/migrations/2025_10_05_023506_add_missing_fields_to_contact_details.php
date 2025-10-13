@@ -19,8 +19,8 @@ return new class extends Migration
             $table->integer('caller_age')->nullable()->after('caller_last_name')->comment('سن تماس گیرنده');
             
             // Location details
-            $table->string('location_description', 255)->nullable()->after('caller_age')->comment('موقعیت مکانی');
-            $table->decimal('latitude', 10, 8)->nullable()->after('location_description')->comment('عرض جغرافیایی');
+            $table->string('address', 255)->nullable()->after('caller_age')->comment('موقعیت مکانی');
+$table->decimal('latitude', 10, 8)->nullable()->after('address')->comment('عرض جغرافیایی');
             $table->decimal('longitude', 11, 8)->nullable()->after('latitude')->comment('طول جغرافیایی');
             
             // Priority and incident info
@@ -84,7 +84,7 @@ return new class extends Migration
         Schema::table('contact_details', function (Blueprint $table) {
             $table->dropColumn([
                 'contact_type', 'caller_first_name', 'caller_last_name', 'caller_age',
-                'location_description', 'latitude', 'longitude', 'priority', 'victims', 'time_of_incident', 'call_time_info',
+                'address', 'latitude', 'longitude', 'priority', 'victims', 'time_of_incident', 'call_time_info',
                 'incident_source_location', 'incident_declaration_source', 'organizational_source', 'organizational_type',
                 'public_source', 'relative_type_detail', 'number_of_injured', 'number_of_vehicles', 'number_of_trapped', 'number_of_houses',
                 'main_complaint', 'cooperating_organizations', 'victims_list',

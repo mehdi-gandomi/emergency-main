@@ -20,6 +20,10 @@ import { typeEventService, TypeEvent } from "@/services/typeEventService";
 import { NuisanceTypeSection } from "./NuisanceTypeSection";
 import { IncidentFormData } from '@/types/incident'
 import { incidentService } from '@/services/incidentService';
+import { IncidentSourceLocation } from '@/types/enums/incidentSourceLocation';
+import { IncidentDeclarationSource } from '@/types/enums/incidentDeclarationSource';
+import { PublicSource } from '@/types/enums/publicSource';
+import { RelativeType, RelativeTypeLabels } from '@/types/enums/relativeType';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -32,6 +36,7 @@ import { ProvinceCitySelector } from "./ProvinceCitySelector";
 import { LocationSection } from "./LocationSection";
 import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ORGANIZATIONAL_OPTIONS = [
   // درون جمعیت
@@ -64,7 +69,6 @@ export const IncidentForm = () => {
     call_track: "",
     call_track_name: "",
     mission_result: "",
-    car_num: "",
     type_call: "",
     type_report: "1",
     report_event_type: 58,
@@ -81,8 +85,8 @@ export const IncidentForm = () => {
     nuisance_type: "",
 
     // Additional UI fields - now using snake_case
-    caller_first_name: "",
-    caller_last_name: "",
+    caller_name: "",
+    caller_lastname: "",
     location: "",
     latitude: "",
     longitude: "",
@@ -91,24 +95,56 @@ export const IncidentForm = () => {
     town_id: "",
     village_id: "",
     priority: "",
-    victims: "",
     time_of_incident: "",
     contact_type: "",
     call_time_info: "",
-    incident_source_location: "",
+    incident_source_location: "",  // Will be populated with IncidentSourceLocation enum values
+    
+    // Fields from contact_details table
+    lon: "",
+    lat: "",
+    height: "",
+    width: "",
+    length: "",
+    main_street: "",
+    sub_street: "",
+    address: "",
+    event_environment_type: undefined,
+    event_environment_name: "",
+    type_mountain: undefined,
+    climb_route: undefined,
+    climb_route_direction: undefined,
+    event_place: undefined,
+    event_place_name: "",
+    axis_name: "",
+    city_start_id: undefined,
+    city_end_id: undefined,
+    km_axis: "",
+    nech_name: "",
+    parish_name: "",
+    plaque: "",
+    fgh_name: "",
+    feet_num: undefined,
+    healthy_people_num: undefined,
+    trauma_type: "",
+    trauma_member: "",
+    ratio: undefined,
+    operator_date: "",
+    operator_time: "",
     incident_declaration_source: "",
     organizational_source: [],
     public_source: "",
     relative_type: "",
-    number_of_injured: "",
-    number_of_vehicles: "",
-    number_of_trapped: "",
-    number_of_houses: "",
+    injured_num: "",
+    car_num: "",
+    caught_homes_num: "",
     main_complaint: "",
     cooperating_organizations: "",
-    caller_age: "",
+
+  
     follow_up_type: "",
     trapped_in_flood_snow_num: "",
+    event_people_num: "",
     victims_list: [],
     operational_teams: [],
     mission_types: [],
@@ -410,32 +446,294 @@ export const IncidentForm = () => {
                       externalPosition={externalMapPosition}
                       shouldFlyToExternal={shouldFlyToExternal}
                     />
+                    
+                    {/* بخش اطلاعات تکمیلی محل حادثه */}
+                    <Card className="mb-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5" />
+                          اطلاعات تکمیلی محل حادثه
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* آدرس */}
+                          <div className="space-y-2">
+                            <Label htmlFor="address">آدرس</Label>
+                            <Textarea
+                              id="address"
+                              name="address"
+                              value={formData.address || ""}
+                              onChange={handleInputChange}
+                              placeholder="آدرس دقیق محل حادثه"
+                              className="resize-none"
+                            />
+                          </div>
+                          
+                          {/* خیابان اصلی */}
+                          <div className="space-y-2">
+                            <Label htmlFor="main_street">خیابان اصلی</Label>
+                            <Input
+                              id="main_street"
+                              name="main_street"
+                              value={formData.main_street || ""}
+                              onChange={handleInputChange}
+                              placeholder="خیابان اصلی"
+                            />
+                          </div>
+                          
+                          {/* خیابان فرعی */}
+                          <div className="space-y-2">
+                            <Label htmlFor="sub_street">خیابان فرعی</Label>
+                            <Input
+                              id="sub_street"
+                              name="sub_street"
+                              value={formData.sub_street || ""}
+                              onChange={handleInputChange}
+                              placeholder="خیابان فرعی"
+                            />
+                          </div>
+                          
+                          {/* پلاک */}
+                          <div className="space-y-2">
+                            <Label htmlFor="plaque">پلاک</Label>
+                            <Input
+                              id="plaque"
+                              name="plaque"
+                              value={formData.plaque || ""}
+                              onChange={handleInputChange}
+                              placeholder="پلاک"
+                            />
+                          </div>
+                          
+                          {/* نام محله */}
+                          <div className="space-y-2">
+                            <Label htmlFor="parish_name">نام محله</Label>
+                            <Input
+                              id="parish_name"
+                              name="parish_name"
+                              value={formData.parish_name || ""}
+                              onChange={handleInputChange}
+                              placeholder="نام محله"
+                            />
+                          </div>
+                          
+                          {/* محیط حادثه */}
+                          <div className="space-y-2">
+                            <Label htmlFor="event_environment_type">محیط حادثه</Label>
+                            <Select
+                              name="event_environment_type"
+                              value={formData.event_environment_type?.toString() || ""}
+                              onValueChange={(value) => handleInputChange({
+                                target: { name: "event_environment_type", value: parseInt(value) || undefined }
+                              } as any)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="انتخاب محیط حادثه" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">شهری</SelectItem>
+                                <SelectItem value="2">روستایی</SelectItem>
+                                <SelectItem value="3">جاده‌ای</SelectItem>
+                                <SelectItem value="4">کوهستانی</SelectItem>
+                                <SelectItem value="5">ساحلی</SelectItem>
+                                <SelectItem value="6">صنعتی</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* نام محیط حادثه */}
+                          <div className="space-y-2">
+                            <Label htmlFor="event_environment_name">نام محیط حادثه</Label>
+                            <Input
+                              id="event_environment_name"
+                              name="event_environment_name"
+                              value={formData.event_environment_name || ""}
+                              onChange={handleInputChange}
+                              placeholder="نام محیط حادثه"
+                            />
+                          </div>
+                          
+                          {/* نام کارخانه/باغ/منزل مسکونی */}
+                          <div className="space-y-2">
+                            <Label htmlFor="fgh_name">نام کارخانه/باغ/منزل مسکونی</Label>
+                            <Input
+                              id="fgh_name"
+                              name="fgh_name"
+                              value={formData.fgh_name || ""}
+                              onChange={handleInputChange}
+                              placeholder="نام کارخانه/باغ/منزل مسکونی"
+                            />
+                          </div>
+                          
+                          {/* ارتفاع */}
+                          <div className="space-y-2">
+                            <Label htmlFor="height">ارتفاع</Label>
+                            <Input
+                              id="height"
+                              name="height"
+                              value={formData.height || ""}
+                              onChange={handleInputChange}
+                              placeholder="ارتفاع"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* بخش اطلاعات آماری حادثه و تروما */}
+                    <Card className="mb-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          اطلاعات آماری حادثه و تروما
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* تعداد افراد حادثه دیده */}
+                          <div className="space-y-2">
+                            <Label htmlFor="event_people_num">تعداد افراد حادثه دیده</Label>
+                            <Input
+                              id="event_people_num"
+                              name="event_people_num"
+                              type="number"
+                              value={formData.event_people_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد افراد حادثه دیده"
+                            />
+                          </div>
+                          
+                          {/* تعداد مصدوم */}
+                          <div className="space-y-2">
+                            <Label htmlFor="injured_num">تعداد مصدوم</Label>
+                            <Input
+                              id="injured_num"
+                              name="injured_num"
+                              type="number"
+                              value={formData.injured_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد مصدوم"
+                            />
+                          </div>
+                          
+                          {/* تعداد فوتی */}
+                          <div className="space-y-2">
+                            <Label htmlFor="feet_num">تعداد فوتی</Label>
+                            <Input
+                              id="feet_num"
+                              name="feet_num"
+                              type="number"
+                              value={formData.feet_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد فوتی"
+                            />
+                          </div>
+                          
+                          {/* تعداد افراد سالم */}
+                          <div className="space-y-2">
+                            <Label htmlFor="healthy_people_num">تعداد افراد سالم</Label>
+                            <Input
+                              id="healthy_people_num"
+                              name="healthy_people_num"
+                              type="number"
+                              value={formData.healthy_people_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد افراد سالم"
+                            />
+                          </div>
+                          
+                          {/* تعداد محبوسین */}
+                          <div className="space-y-2">
+                            <Label htmlFor="prisoners_num">تعداد محبوسین</Label>
+                            <Input
+                              id="prisoners_num"
+                              name="prisoners_num"
+                              type="number"
+                              value={formData.prisoners_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد محبوسین"
+                            />
+                          </div>
+                          
+                          {/* تعداد افراد گرفتار شده در سیل/برف */}
+                          <div className="space-y-2">
+                            <Label htmlFor="caught_in_snow_flood_num">تعداد افراد گرفتار شده در سیل/برف</Label>
+                            <Input
+                              id="caught_in_snow_flood_num"
+                              name="caught_in_snow_flood_num"
+                              type="number"
+                              value={formData.caught_in_snow_flood_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد افراد گرفتار شده در سیل/برف"
+                            />
+                          </div>
+                          
+                          {/* تعداد خودروی آسیب دیده */}
+                          <div className="space-y-2">
+                            <Label htmlFor="car_num">تعداد خودروی آسیب دیده</Label>
+                            <Input
+                              id="car_num"
+                              name="car_num"
+                              type="number"
+                              value={formData.car_num || ""}
+                              onChange={handleInputChange}
+                              placeholder="تعداد خودروی آسیب دیده"
+                            />
+                          </div>
+                          
+                          {/* نوع تروما یا مصدومیت */}
+                          <div className="space-y-2">
+                            <Label htmlFor="trauma_type">نوع تروما یا مصدومیت</Label>
+                            <Input
+                              id="trauma_type"
+                              name="trauma_type"
+                              value={formData.trauma_type || ""}
+                              onChange={handleInputChange}
+                              placeholder="نوع تروما یا مصدومیت"
+                            />
+                          </div>
+                          
+                          {/* عضو دچار تروما شده */}
+                          <div className="space-y-2">
+                            <Label htmlFor="trauma_member">عضو دچار تروما شده</Label>
+                            <Input
+                              id="trauma_member"
+                              name="trauma_member"
+                              value={formData.trauma_member || ""}
+                              onChange={handleInputChange}
+                              placeholder="عضو دچار تروما شده"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </>
                 )}
 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="caller_first_name" className="text-sm font-medium text-right">
+                    <Label htmlFor="caller_name" className="text-sm font-medium text-right">
                       نام تماس گیرنده *
                     </Label>
                     <Input
-                      id="caller_first_name"
+                      id="caller_name"
                       placeholder="نام"
-                      value={formData.caller_first_name}
-                      onChange={(e) => handleInputChange('caller_first_name', e.target.value)}
+                      value={formData.caller_name}
+                      onChange={(e) => handleInputChange('caller_name', e.target.value)}
                       className="h-11 text-right"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="caller_last_name" className="text-sm font-medium text-right">
+                    <Label htmlFor="caller_lastname" className="text-sm font-medium text-right">
                       نام خانوادگی *
                     </Label>
                     <Input
-                      id="caller_last_name"
+                      id="caller_lastname"
                       placeholder="نام خانوادگی"
-                      value={formData.caller_last_name}
-                      onChange={(e) => handleInputChange('caller_last_name', e.target.value)}
+                      value={formData.caller_lastname}
+                      onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
                       className="h-11 text-right"
                     />
                   </div>
@@ -792,7 +1090,7 @@ export const IncidentForm = () => {
                         </RadioGroup>
 
                         {/* Relative Type Details */}
-                        {formData.cancel_public_source === 'خویشاوندان' && (
+                        {formData.cancel_public_source === PublicSource.RELATIVES && (
                           <div className="space-y-2 mt-3">
                             <Label htmlFor="cancel_relative_type" className="text-sm font-medium text-right">
                               نوع خویشاوندی
@@ -802,12 +1100,11 @@ export const IncidentForm = () => {
                                 <SelectValue placeholder="انتخاب نوع خویشاوندی" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="والدین">👨‍👩‍👧‍👦 والدین</SelectItem>
-                                <SelectItem value="همسر">💑 همسر</SelectItem>
-                                <SelectItem value="فرزند">👶 فرزند</SelectItem>
-                                <SelectItem value="دوستان">👥 دوستان</SelectItem>
-                                <SelectItem value="برادر">👨‍👦 برادر</SelectItem>
-                                <SelectItem value="خواهر">👩‍👧 خواهر</SelectItem>
+                                {Object.values(RelativeType).map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {RelativeTypeLabels[type]}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
