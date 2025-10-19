@@ -34,13 +34,13 @@ class Contact extends Model
         'mobile',              // شماره تماس گیرنده
         'type_call',           // نوع تماس
         'type_report',         // نوع گزارش(عملیات1،خدمات2)
-        'report_event_type',        // نوع حادثه اعلامی
+        'report_event',        // نوع حادثه اعلامی
         'device',              // نام دستگاه
-        'event_details_status',       // درحال انجام/پایان عملیات
+        'event_details',       // درحال انجام/پایان عملیات
         'event_follow_id',     // نمایش اطلاعات حادثه(پیگیری حادثه اعلامی)
         'event_repetitive_id', // نمایش اطلاعات حادثه(تکراری)
         'text',                // شرح مختصر حادثه
-        'alarm_status',               // آلارم
+        'alarm',               // آلارم
         'created_personnel_id',// شخص ثبت کننده
         'nuisance_type',          // نوع مزاحمت
         
@@ -53,7 +53,7 @@ class Contact extends Model
         'priority',            // سطح اولویت
         'victims',             // تعداد مجروحان
         'contact_type',        // نوع تماس (اضطراری/غیراضطراری/مزاحم/ناتمام)
-        'call_time_info',      // اطلاعات زمانی تماس
+        // 'call_time_info',      // اطلاعات زمانی تماس
         'incident_source_location', // موقعیت منبع اعلام حادثه
         'incident_declaration_source', // منبع اعلام حادثه
         'organizational_source', // نوع سازمان (JSON array)
@@ -107,7 +107,7 @@ class Contact extends Model
     }
     public function event_type(): BelongsTo
     {
-        return $this->belongsTo(TypeEvent::class, 'report_event_type', 'id');
+        return $this->belongsTo(TypeEvent::class, 'report_event', 'id');
     }
     public function event_follow(): BelongsTo
     {
@@ -116,5 +116,8 @@ class Contact extends Model
     public function event_repetitive(): BelongsTo
     {
         return $this->belongsTo(Event::class, 'event_repetitive_id', 'id');
+    }
+    public function operator(){
+        return $this->belongsTo(Operator::class, 'operator_id', 'id');
     }
 }

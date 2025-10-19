@@ -60,8 +60,8 @@ export const OperationalTeamDispatchSection = ({
         </Label>
         <RadioGroup
           dir="rtl"
-          value={formData.incident_source_location}
-          onValueChange={(value) => onInputChange('incident_source_location', value)}
+          value={String(formData.incident_source_location)}
+          onValueChange={(value) => onInputChange('incident_source_location', parseInt(value))}
           className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
@@ -115,8 +115,8 @@ export const OperationalTeamDispatchSection = ({
         </Label>
         <RadioGroup
           dir="rtl"
-          value={formData.incident_declaration_source}
-          onValueChange={(value) => onInputChange('incident_declaration_source', value)}
+          value={String(formData.incident_declaration_source)}
+          onValueChange={(value) => onInputChange('incident_declaration_source', parseInt(value))}
           className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
@@ -251,8 +251,8 @@ export const OperationalTeamDispatchSection = ({
           </Label>
           <RadioGroup
             dir="rtl"
-            value={formData.public_source}
-            onValueChange={(value) => onInputChange('public_source', value)}
+            value={String(formData.public_source)}
+          onValueChange={(value) => onInputChange('public_source', parseInt(value))}
             className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
           >
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${

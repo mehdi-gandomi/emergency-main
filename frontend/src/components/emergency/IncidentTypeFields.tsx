@@ -15,7 +15,7 @@ interface IncidentTypeFieldsProps {
 }
 
 export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFieldsProps) => {
-  if (!formData.report_event_type) {
+  if (!formData.report_event) {
     return null;
   }
 
@@ -29,7 +29,7 @@ export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFiel
   return (
     <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-r-4 border-blue-500">
       <h4 className="font-semibold text-blue-700 dark:text-blue-300 text-right">
-        جزئیات خاص نوع حادثه: {formData.report_event_type}
+        جزئیات خاص نوع حادثه: {formData.report_event}
       </h4>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

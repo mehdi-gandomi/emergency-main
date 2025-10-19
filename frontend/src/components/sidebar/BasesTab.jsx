@@ -4,25 +4,49 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Phone, MessageSquare, Heart, Clock, MessageCircle, CheckCircle, Radio } from 'lucide-react';
+import { Phone, MessageSquare, Heart, Clock, MessageCircle, CheckCircle, Radio, MapPin, Home } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 
 const calculateETA = (baseLocation, incidentLocation) => {
-    if (!baseLocation || !incidentLocation) return 0;
-    const distance = Math.sqrt(
-      Math.pow(baseLocation.latitude - incidentLocation.latitude, 2) +
-      Math.pow(baseLocation.longitude - incidentLocation.longitude, 2)
-    ) * 111;
-    return Math.round(distance * 1.5);
+    if (!baseLocation || !incidentLocation) return 30;
+    
+    // Calculate distance-based ETA using coordinates
+    const lat1 = baseLocation.latitude || baseLocation.lat;
+    const lon1 = baseLocation.longitude || baseLocation.lng;
+    const lat2 = incidentLocation.latitude || incidentLocation.lat;
+    const lon2 = incidentLocation.longitude || incidentLocation.lng;
+    
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 30;
+    
+    // Calculate distance in km
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    // Assume average speed of 60 km/h
+    return Math.round(distance * 60 / 60);
 };
 
-const getBaseTypeLabel = (type) => ({
+const getBaseTypeLabel = (type) => {
+  const types = {
     intercity: 'بین شهری',
     mountain: 'کوهستان',
     coastal: 'ساحلی',
-    urban: 'شهری'
-}[type] || type);
+    urban: 'شهری',
+    1: 'پایگاه امداد و نجات',
+    2: 'پست امداد و نجات',
+    3: 'پایگاه امداد هوایی',
+    4: 'مرکز کنترل و هماهنگی عملیات',
+    5: 'انبار امدادی'
+  };
+  return types[type] || type;
+};
 
 export default function BasesTab({ bases, selectedBases, onSelectBase, incidentLocation }) {
   const [filterType, setFilterType] = useState('all');
@@ -121,7 +145,7 @@ export default function BasesTab({ bases, selectedBases, onSelectBase, incidentL
                 {/* Base details */}
                 <div className="mr-8 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <span className="text-gray-600">نوع: {getBaseTypeLabel(base.base_type)}</span>
-                    <span className="text-gray-600">شعبه: فیروزکوه</span>
+                    <span className="text-gray-600">شعبه: {base.branch || base.city || 'نامشخص'}</span>
                     <span className="text-gray-600">افراد شیفت: {base.personnel_count?.available || 0} نفر</span>
                     <span className="text-gray-600">ETA: {calculateETA(base.location, incidentLocation)} دقیقه</span>
                 </div>
@@ -130,9 +154,11 @@ export default function BasesTab({ bases, selectedBases, onSelectBase, incidentL
                 <div className="mr-8 flex flex-wrap gap-1">
                    <span className="text-xs font-semibold text-blue-600 mr-2">تخصص:</span>
                    {base.specialization && base.specialization.length > 0 ? 
-                      <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 px-2 py-0.5">
-                        {base.specialization[0]}
-                      </Badge>
+                      base.specialization.map((spec, index) => (
+                        <Badge key={index} variant="outline" className="text-xs border-blue-300 text-blue-600 px-2 py-0.5">
+                          {spec}
+                        </Badge>
+                      ))
                       : <span className="text-xs text-gray-500">-</span>
                    }
                 </div>
@@ -145,6 +171,12 @@ export default function BasesTab({ bases, selectedBases, onSelectBase, incidentL
                   {base.equipment && base.equipment.length > 3 && (
                       <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 font-normal">+{base.equipment.length - 3}</Badge>
                   )}
+                </div>
+                
+                {/* Address information */}
+                <div className="mr-8 flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  <span>{base.address || base.location?.address || `${base.province || ''} ${base.city || ''} ${base.district || ''}`.trim() || 'آدرس نامشخص'}</span>
                 </div>
 
                 {/* Mission status */}
@@ -168,7 +200,7 @@ export default function BasesTab({ bases, selectedBases, onSelectBase, incidentL
                     <Button size="icon" className="w-7 h-7 bg-purple-500 hover:bg-purple-600"><svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8.5 14.5h-1v-5h1v5zm3 0h-1v-3h1v3zm3 0h-1v-7h1v7z"/></svg></Button>
                     <Button size="icon" className="w-7 h-7 bg-orange-500 hover:bg-orange-600"><Radio className="w-4 h-4" /></Button>
                   </div>
-                  <span className="text-xs text-gray-400 font-mono">نجات {base.contact_info?.vhf_code || '187'}</span>
+                  <span className="text-xs text-gray-400 font-mono">{base.contact_info?.vhf_prefix || 'نجات'} {base.contact_info?.vhf_code || base.operational_code || '-'}</span>
                 </div>
 
                 {/* Mission button - only show for selected bases */}

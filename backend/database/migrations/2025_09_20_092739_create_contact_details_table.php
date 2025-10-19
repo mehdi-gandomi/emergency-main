@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('main_street', 100)->nullable()->comment('خیابان اصلی');
             $table->string('sub_street', 100)->nullable()->comment('خیابان فرعی');
             $table->text('address')->comment('آدرس');
-            $table->tinyInteger('event_environment_type')->nullable()->comment('محیط حادثه');
+            $table->tinyInteger('event_environment')->nullable()->comment('محیط حادثه');
             $table->string('event_environment_name', 255)->nullable()->comment('نام محیط حادثه');
             $table->tinyInteger('type_mountain')->nullable()->comment('نوع کوهستان');
             $table->tinyInteger('climb_route')->nullable()->comment('مسیر صعود');

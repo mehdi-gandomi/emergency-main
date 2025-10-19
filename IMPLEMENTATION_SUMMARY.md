@@ -97,7 +97,7 @@ const incident = await incidentService.getContact(contactId);
 ### Update Status
 ```typescript
 const updated = await incidentService.updateContactStatus(contactId, {
-  event_details_status: 'پایان عملیات'
+  event_details: 'پایان عملیات'
 });
 ```
 

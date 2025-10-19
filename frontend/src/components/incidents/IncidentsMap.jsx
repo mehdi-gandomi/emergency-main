@@ -12,7 +12,20 @@ L.Icon.Default.mergeOptions({
 });
 
 // Function to create icons based on incident type
-const getIncidentIcon = (incidentType) => {
+const getIncidentIcon = (incident) => {
+  // Check if incident has type_event with icon_path
+  if (incident.type_event && incident.type_event.icon_path) {
+    return L.divIcon({
+      html: `<div class="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md">
+              <img src="/icon/${incident.type_event.icon_path}.png" alt="${incident.type_event.title}" class="w-8 h-8" />
+            </div>`,
+      className: 'bg-transparent border-none',
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+    });
+  }
+  
+  // Fallback to emoji icons if no type_event icon is available
   const iconMap = {
     'پزشکی': '🚑',
     'آتش‌سوزی': '🔥',
@@ -30,6 +43,7 @@ const getIncidentIcon = (incidentType) => {
     'earthquake': '🌍'
   };
 
+  const incidentType = incident.incident_type || (incident.type_event ? incident.type_event.title : '');
   const emoji = iconMap[incidentType] || '📍';
   
   return L.divIcon({
@@ -77,11 +91,12 @@ export default function IncidentsMap({ incidents }) {
         <Marker
           key={incident.id}
           position={[incident.location.latitude, incident.location.longitude]}
-          icon={getIncidentIcon(incident.incident_type)}
+          icon={getIncidentIcon(incident)}
         >
           <Popup>
             <div dir="rtl" className="p-1 min-w-48 text-right">
               <h4 className="font-bold mb-1">{incident.title}</h4>
+              <p className="text-xs">نوع: {incident.type_event ? incident.type_event.title : incident.incident_type}</p>
               <p className="text-xs">وضعیت: {incident.status}</p>
               <p className="text-xs">مکان: {incident.location.address}</p>
             </div>

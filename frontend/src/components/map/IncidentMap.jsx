@@ -256,7 +256,7 @@ const Geocoder = () => {
 export default function IncidentMap({ incident, bases, volunteers, houses = [], radius }) {
   const [activeTool, setActiveTool] = useState('pan');
 
-  if (!incident?.location) {
+  if (!incident?.eventLocation) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100">
         <p className="text-gray-500">در حال بارگذاری نقشه...</p>
@@ -264,7 +264,7 @@ export default function IncidentMap({ incident, bases, volunteers, houses = [], 
     );
   }
 
-  const center = [incident.location.latitude, incident.location.longitude];
+  const center = [incident.eventLocation.latitude, incident.eventLocation.longitude];
 
   return (
     <div className="w-full h-full relative">

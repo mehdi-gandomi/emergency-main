@@ -110,8 +110,8 @@ class ContactController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'event_details_status' => 'required|string|in:درحال انجام,پایان عملیات',
-            'alarm_status' => 'nullable|string'
+            'event_details' => 'required|string|in:درحال انجام,پایان عملیات',
+            'alarm' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -164,12 +164,12 @@ class ContactController extends Controller
             'time_call' => 'nullable|string',
             'type_call' => 'nullable|string|in:1,2,4,5,6,8,9',
             'type_report' => 'nullable|string|in:1,2',
-            'report_event_type' => 'nullable|integer|exists:type_events,id',
+            'report_event' => 'nullable|integer|exists:type_events,id',
             'device' => 'nullable|string|in:0,1,2,3,4,5,6,7,8,9,10',
-            'event_details_status' => 'nullable|string|in:درحال انجام,پایان عملیات',
+            'event_details' => 'nullable|string|in:درحال انجام,پایان عملیات',
             'event_follow_id' => 'nullable|integer',
             'event_repetitive_id' => 'nullable|integer',
-            'alarm_status' => 'nullable|string',
+            'alarm' => 'nullable|string',
             'created_personnel_id' => 'nullable|integer',
             'nuisance_type' => 'nullable|string',
 

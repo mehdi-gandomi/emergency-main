@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,24 +7,44 @@ import { Filter, Search, X, ChevronDown, ChevronUp, RefreshCw, Loader2 } from 'l
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import { typeEventService } from "@/services/typeEventService";
 
-export default function IncidentFilters({ filters, onFilterChange, onClearFilters, incidents, onRefresh, isRefreshing, onSearch }) {
-  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(true);
+export default function IncidentFilters({ 
+  filters, 
+  onFilterChange, 
+  onClearFilters, 
+  incidents, 
+  onRefresh, 
+  isRefreshing, 
+  onSearch,
+  provinces = [],
+  cities = [],
+  towns = [],
+  loadingLocations = { provinces: false, cities: false, towns: false }
+}) {
+  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
+  const [typeEvents, setTypeEvents] = useState([]);
+  const [loadingTypeEvents, setLoadingTypeEvents] = useState(false);
+
+  // Fetch type events on component mount
+  useEffect(() => {
+    const fetchTypeEvents = async () => {
+      setLoadingTypeEvents(true);
+      try {
+        const events = await typeEventService.getTypeEvents();
+        setTypeEvents(events);
+      } catch (error) {
+        console.error('Error fetching type events:', error);
+      } finally {
+        setLoadingTypeEvents(false);
+      }
+    };
+
+    fetchTypeEvents();
+  }, []);
 
   // Extract unique values from incidents for dynamic filters
-  const provinces = [...new Set(incidents.map(i => i.location?.province).filter(Boolean))];
-  const cities = [...new Set(incidents.map(i => i.location?.city).filter(Boolean))];
   const operators = [...new Set(incidents.map(i => i.operator_name).filter(Boolean))];
-
-  // Cities data structure
-  const citiesData = {
-    'تهران': ['تهران', 'کرج', 'ورامین', 'شهریار'],
-    'اصفهان': ['اصفهان', 'کاشان', 'نجف آباد', 'خمینی شهر'],
-    'شیراز': ['شیراز', 'کازرون', 'مرودشت', 'جهرم'],
-    'مشهد': ['مشهد', 'نیشابور', 'سبزوار', 'تربت حیدریه'],
-    'تبریز': ['تبریز', 'مراغه', 'میانه', 'اهر'],
-    'اهواز': ['اهواز', 'آبادان', 'خرمشهر', 'دزفول']
-  };
 
   const hasActiveFilters = Object.values(filters).some(value => value && value !== '30days');
 
@@ -72,19 +92,39 @@ export default function IncidentFilters({ filters, onFilterChange, onClearFilter
         {/* Incident Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">نوع حادثه</label>
-          <Select value={filters.incidentType || 'all'} onValueChange={(value) => onFilterChange('incidentType', value === 'all' ? '' : value)}>
+          <Select value={filters.report_event || 'all'} onValueChange={(value) => onFilterChange('report_event', value === 'all' ? '' : value)}>
             <SelectTrigger className="h-9">
               <SelectValue placeholder="انتخاب مورد" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه</SelectItem>
-              <SelectItem value="پزشکی">🚑 اورژانس پزشکی</SelectItem>
-              <SelectItem value="آتش‌سوزی">🔥 آتش‌سوزی</SelectItem>
-              <SelectItem value="تصادف">🚗 تصادف رانندگی</SelectItem>
-              <SelectItem value="جرم">🚔 جرم در حال وقوع</SelectItem>
-              <SelectItem value="مواد خطرناک">☢️ مواد خطرناک</SelectItem>
-              <SelectItem value="بلایای طبیعی">🌪️ بلایای طبیعی</SelectItem>
-              <SelectItem value="سایر">❓ سایر موارد</SelectItem>
+              {loadingTypeEvents ? (
+                <SelectItem value="loading" disabled>در حال بارگیری...</SelectItem>
+              ) : (
+                typeEvents.map((event) => (
+                  <SelectItem key={`event-${event.id}`} value={event.id.toString()}>
+                    {event.title}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Environment Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">نوع محیط</label>
+          <Select value={filters.event_environment || 'all'} onValueChange={(value) => onFilterChange('event_environment', value === 'all' ? '' : value)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="انتخاب مورد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه</SelectItem>
+              <SelectItem value="1">شهری</SelectItem>
+              <SelectItem value="2">جاده‌ای</SelectItem>
+              <SelectItem value="3">کوهستان</SelectItem>
+              <SelectItem value="4">ساحلی</SelectItem>
+              <SelectItem value="5">دریایی</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -105,6 +145,38 @@ export default function IncidentFilters({ filters, onFilterChange, onClearFilter
               <SelectItem value="P5">P5 - صرفاً اطلاع‌رسانی</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Mountain Type - Only show when environment type is mountain (3) */}
+        {filters.event_environment === '3' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">نوع کوهستان</label>
+            <Select value={filters.type_mountain || 'all'} onValueChange={(value) => onFilterChange('type_mountain', value === 'all' ? '' : value)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="انتخاب مورد" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value="1">مسیر صعود</SelectItem>
+                <SelectItem value="2">مسیر فرود</SelectItem>
+                <SelectItem value="3">دیواره</SelectItem>
+                <SelectItem value="4">دره</SelectItem>
+                <SelectItem value="5">غار</SelectItem>
+                <SelectItem value="6">یخچال</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Event Place */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">محل حادثه</label>
+          <Input
+            placeholder="محل حادثه"
+            value={filters.event_place || ''}
+            onChange={(e) => onFilterChange('event_place', e.target.value)}
+            className="h-9"
+          />
         </div>
 
         {/* Status */}
@@ -147,40 +219,78 @@ export default function IncidentFilters({ filters, onFilterChange, onClearFilter
           <label className="block text-sm font-medium text-gray-700 mb-1">استان</label>
           <Select value={filters.province || 'all'} onValueChange={(value) => {
             onFilterChange('province', value === 'all' ? '' : value);
-            // Reset city when province changes
+            // Reset city and town when province changes
             onFilterChange('city', '');
+            onFilterChange('town', '');
           }}>
             <SelectTrigger className="h-9">
               <SelectValue placeholder="انتخاب مورد" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه</SelectItem>
-              <SelectItem value="تهران">تهران</SelectItem>
-              <SelectItem value="اصفهان">اصفهان</SelectItem>
-              <SelectItem value="شیراز">شیراز</SelectItem>
-              <SelectItem value="مشهد">مشهد</SelectItem>
-              <SelectItem value="تبریز">تبریز</SelectItem>
-              <SelectItem value="اهواز">اهواز</SelectItem>
+              {loadingLocations.provinces ? (
+                <SelectItem value="loading" disabled>در حال بارگیری...</SelectItem>
+              ) : (
+                provinces.map((province) => (
+                  <SelectItem key={`province-${province.id}`} value={province.id.toString()}>
+                    {province.title}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
 
         {/* City */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">شهر</label>
-          <Select value={filters.city || 'all'} onValueChange={(value) => onFilterChange('city', value === 'all' ? '' : value)}>
+          <label className="block text-sm font-medium text-gray-700 mb-1">شهرستان</label>
+          <Select 
+            value={filters.city || 'all'} 
+            onValueChange={(value) => {
+              onFilterChange('city', value === 'all' ? '' : value);
+              // Reset town when city changes
+              onFilterChange('town', '');
+            }}
+            disabled={!filters.province}
+          >
             <SelectTrigger className="h-9">
               <SelectValue placeholder="انتخاب مورد" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه</SelectItem>
-              {filters.province && citiesData[filters.province] ? (
-                citiesData[filters.province].map(city => (
-                  <SelectItem key={city} value={city}>{city}</SelectItem>
-                ))
+              {loadingLocations.cities ? (
+                <SelectItem value="loading" disabled>در حال بارگیری...</SelectItem>
               ) : (
-                Object.values(citiesData).flat().map(city => (
-                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                cities.map((city) => (
+                  <SelectItem key={`city-${city.id}`} value={city.id.toString()}>
+                    {city.title}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Town */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">شهر</label>
+          <Select 
+            value={filters.town || 'all'} 
+            onValueChange={(value) => onFilterChange('town', value === 'all' ? '' : value)}
+            disabled={!filters.city}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="انتخاب مورد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه</SelectItem>
+              {loadingLocations.towns ? (
+                <SelectItem value="loading" disabled>در حال بارگیری...</SelectItem>
+              ) : (
+                towns.map((town) => (
+                  <SelectItem key={`town-${town.id}`} value={town.id.toString()}>
+                    {town.title}
+                  </SelectItem>
                 ))
               )}
             </SelectContent>
@@ -240,6 +350,43 @@ export default function IncidentFilters({ filters, onFilterChange, onClearFilter
             onChange={(e) => onFilterChange('contactTime', e.target.value)}
             className="h-9"
           />
+        </div>
+
+        {/* Trauma Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">نوع تروما</label>
+          <Select value={filters.trauma_type || 'all'} onValueChange={(value) => onFilterChange('trauma_type', value === 'all' ? '' : value)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="انتخاب مورد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه</SelectItem>
+              <SelectItem value="1">سقوط از ارتفاع</SelectItem>
+              <SelectItem value="2">تصادف</SelectItem>
+              <SelectItem value="3">سقوط اجسام</SelectItem>
+              <SelectItem value="4">برق گرفتگی</SelectItem>
+              <SelectItem value="5">سوختگی</SelectItem>
+              <SelectItem value="6">غرق شدگی</SelectItem>
+              <SelectItem value="7">مسمومیت</SelectItem>
+              <SelectItem value="8">سایر</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Follow-up Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">نوع پیگیری</label>
+          <Select value={filters.follow_up_type || 'all'} onValueChange={(value) => onFilterChange('follow_up_type', value === 'all' ? '' : value)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="انتخاب مورد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه</SelectItem>
+              <SelectItem value="1">پیگیری حادثه اعلامی</SelectItem>
+              <SelectItem value="2">پیگیری حادثه تکراری</SelectItem>
+              <SelectItem value="3">پیگیری حادثه مزاحم</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Contact Type */}

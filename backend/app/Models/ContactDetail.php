@@ -165,4 +165,20 @@ class ContactDetail extends Model
     {
         return $this->belongsTo(Contact::class, 'contact_id', 'id');
     }
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class, 'city_id', 'id');
+    }
+     public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_id', 'id');
+    }
+    public function town(): BelongsTo
+    {
+        return $this->belongsTo(Town::class, 'town_id', 'id');
+    }
+        public function village(): BelongsTo
+    {
+        return $this->belongsTo(Village::class, 'village_id', 'id');
+    }
 }

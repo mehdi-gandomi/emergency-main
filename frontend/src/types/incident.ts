@@ -12,7 +12,7 @@ export interface IncidentFormData {
   mobile: string;                 // شماره تماس گیرنده
   type_call?: string|number;             // نوع تماس
   type_report?: string;           // نوع گزارش(عملیات1،خدمات2)
-  report_event_type?: number;     // نوع حادثه اعلامی
+  report_event?: number;     // نوع حادثه اعلامی
   device?: string;                // نام دستگاه
   mission_cancel_reason: string; // دلیل لغو مأموریت
   cancel_source: string; // منبع لغو کننده
@@ -24,12 +24,12 @@ export interface IncidentFormData {
   cancel_relative_type?: string;  // نوع خویشاوندی لغو کننده
   cancel_organizational_source?: string[]; // نوع سازمان لغو کننده
   cancel_organizational_type?: string; // نوع سازمان لغو کننده
-  event_details_status?: string;  // درحال انجام/پایان عملیات
+  event_details?: string;  // درحال انجام/پایان عملیات
   event_follow_id?: number;       // نمایش اطلاعات حادثه(پیگیری حادثه اعلامی)
   follow_up_type?: string;           // نوع پیگیری
   event_repetitive_id?: number;   // نمایش اطلاعات حادثه(تکراری)
   text?: string;                  // شرح مختصر حادثه  
-  alarm_status?: string;          // آلارم
+  alarm?: string;          // آلارم
   created_personnel_id?: number;  // شخص ثبت کننده
   created_at?: string;            // زمان ثبت
   nuisance_type?: string;         // نوع مزاحمت
@@ -67,7 +67,7 @@ export interface IncidentFormData {
   main_street?: string;           // خیابان اصلی
   sub_street?: string;            // خیابان فرعی
   address?: string;               // آدرس
-  event_environment_type?: string; // محیط حادثه
+  event_environment?: string; // محیط حادثه
   event_environment_name?: string; // نام محیط حادثه
   type_mountain?: string;         // نوع کوهستان
   climb_route?: string;           // مسیر صعود

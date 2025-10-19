@@ -72,14 +72,14 @@ export const IncidentForm = () => {
     mission_result: "",
     type_call: "",
     type_report: "1",
-    report_event_type: 58,
+    report_event: 58,
     device: "",
     event_repetitive_id:0,
     organizations_in_place: [],
-    event_details_status: "",
+    event_details: "",
     cc: "",
     text: "",
-    alarm_status: "",
+    alarm: "",
     phone_in: "102",
     date_call: "",
     time_call: "",
@@ -110,7 +110,7 @@ export const IncidentForm = () => {
     main_street: "",
     sub_street: "",
     address: "",
-    event_environment_type: undefined,
+    event_environment: undefined,
     event_environment_name: "",
     type_mountain: undefined,
     climb_route: undefined,
@@ -521,12 +521,12 @@ export const IncidentForm = () => {
                           
                           {/* محیط حادثه */}
                           <div className="space-y-2">
-                            <Label htmlFor="event_environment_type">محیط حادثه</Label>
+                            <Label htmlFor="event_environment">محیط حادثه</Label>
                             <Select
-                              name="event_environment_type"
-                              value={formData.event_environment_type?.toString() || ""}
+                              name="event_environment"
+                              value={formData.event_environment?.toString() || ""}
                               onValueChange={(value) => handleInputChange({
-                                target: { name: "event_environment_type", value: parseInt(value) || undefined }
+                                target: { name: "event_environment", value: parseInt(value) || undefined }
                               } as any)}
                             >
                               <SelectTrigger>
@@ -771,7 +771,7 @@ export const IncidentForm = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-  <Label htmlFor="report_event_type" className="text-sm font-medium text-right">
+  <Label htmlFor="report_event" className="text-sm font-medium text-right">
     نوع حادثه *
   </Label>
   <Popover>
@@ -821,7 +821,7 @@ export const IncidentForm = () => {
                   value={event.title}
                   onSelect={() => {
                     setSelectedTypeEvent(event);
-                    handleInputChange('report_event_type', event.id);
+                    handleInputChange('report_event', event.id);
                   }}
                   className="flex items-center justify-between cursor-pointer"
                 >
@@ -869,10 +869,10 @@ export const IncidentForm = () => {
                       selectedEventId={formData.event_follow_id}
                       onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
                       filters={{
-                        type_event_id: formData.report_event_type,
+                        type_event_id: formData.report_event,
                         province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                         branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-                        operation_status: formData.event_details_status ? parseInt(formData.event_details_status) : 1,
+                        operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
                       }}
                     />
                   </div>
@@ -1176,10 +1176,10 @@ export const IncidentForm = () => {
                 <>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="event_details_status" className="text-sm font-medium text-right">
+                    <Label htmlFor="event_details" className="text-sm font-medium text-right">
                       وضعیت عملیات
                     </Label>
-                    <Select onValueChange={(value) => handleInputChange('event_details_status', value)}>
+                    <Select onValueChange={(value) => handleInputChange('event_details', value)}>
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="انتخاب نوع گزارش" />
                       </SelectTrigger>
@@ -1199,10 +1199,10 @@ export const IncidentForm = () => {
                       selectedEventId={formData.event_follow_id}
                       onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
                       filters={{
-                        type_event_id: formData.report_event_type,
+                        type_event_id: formData.report_event,
                         province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                         branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-                        operation_status: formData.event_details_status ? parseInt(formData.event_details_status) : 1,
+                        operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
                       }}
                     />
                   </div>

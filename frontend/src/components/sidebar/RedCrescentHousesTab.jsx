@@ -9,20 +9,44 @@ import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 
 const calculateETA = (houseLocation, incidentLocation) => {
-    if (!houseLocation || !incidentLocation) return 0;
-    const distance = Math.sqrt(
-      Math.pow(houseLocation.latitude - incidentLocation.latitude, 2) +
-      Math.pow(houseLocation.longitude - incidentLocation.longitude, 2)
-    ) * 111;
-    return Math.round(distance * 1.5);
+    if (!houseLocation || !incidentLocation) return 30;
+    
+    // Calculate distance-based ETA using coordinates
+    const lat1 = houseLocation.latitude || houseLocation.lat;
+    const lon1 = houseLocation.longitude || houseLocation.lng;
+    const lat2 = incidentLocation.latitude || incidentLocation.lat;
+    const lon2 = incidentLocation.longitude || incidentLocation.lng;
+    
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 30;
+    
+    // Calculate distance in km
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    // Assume average speed of 50 km/h for houses (slightly slower than bases)
+    return Math.round(distance * 60 / 50);
 };
 
-const getHouseTypeLabel = (type) => ({
+const getHouseTypeLabel = (type) => {
+  const types = {
     emergency: 'اورژانسی',
     shelter: 'پناهگاه',
     medical: 'درمانی',
-    logistics: 'پشتیبانی'
-}[type] || type);
+    logistics: 'پشتیبانی',
+    1: 'خانه هلال',
+    2: 'خانه داوطلب',
+    3: 'خانه جوانان',
+    4: 'مرکز توانبخشی',
+    5: 'مرکز آموزشی'
+  };
+  return types[type] || type;
+};
 
 const getCapacityStatusColor = (current, max) => {
     const percentage = (current / max) * 100;
@@ -141,8 +165,9 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
                 {/* House details */}
                 <div className="mr-8 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <span className="text-gray-600">نوع: {getHouseTypeLabel(house.house_type)}</span>
-                    <span className="text-gray-600">منطقه: {house.region || 'تهران'}</span>
-                    <span className="text-gray-600">مسئول: {house.manager_name || 'نامشخص'}</span>
+                    <span className="text-gray-600">منطقه: {house.region || house.city || house.location?.city || 'نامشخص'}</span>
+                    <span className="text-gray-600">مسئول: {house.manager_name || house.contact_info?.manager || house.contact_person || 'نامشخص'}</span>
+                    <span className="text-gray-600">کد رادیویی: {house.contact_info?.vhf_prefix ? `${house.contact_info.vhf_prefix}-${house.contact_info.vhf_code || ''}` : house.operational_code || 'نامشخص'}</span>
                     <span className="text-gray-600">ETA: {calculateETA(house.location, incidentLocation)} دقیقه</span>
                 </div>
 

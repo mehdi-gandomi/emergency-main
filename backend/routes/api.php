@@ -16,19 +16,19 @@ use App\Http\Controllers\API\CityController;
 use App\Http\Controllers\API\TownController;
 use App\Http\Controllers\API\VillageController;
 use App\Http\Controllers\API\EventController;
+use App\Http\Controllers\API\RecordPersonsStatusController;
 
-Route::get('/events', [EventController::class, 'index']);
+Route::get('/contact-events', [EventController::class, 'contactEvents']);
+Route::get('/contact-events/{id}', [EventController::class, 'contactEventsShow']);
+
+// Personnel Status routes
+Route::get('/active-personnel', [RecordPersonsStatusController::class, 'getActivePersonnelByLocation']);
 
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::apiResource('contacts', ContactController::class);
 
-// New Contact routes for incident form submission
-Route::post('/incident-contacts', [NewContactController::class, 'store']);
-Route::get('/incident-contacts/{id}', [NewContactController::class, 'show']);
-Route::patch('/incident-contacts/{id}/status', [NewContactController::class, 'updateStatus']);
-Route::apiResource('contact-details', ContactDetailController::class);
 
 // Type Events API
 Route::get('/type-events/tree', [TypeEventController::class, 'tree']);

@@ -123,12 +123,12 @@ private  toEnglishDigits(str) {
       time_call: formData.time_call || null,
       type_call: formData.type_call || null,
       type_report: formData.type_report || null,
-      report_event_type: formData.report_event_type || null,
+      report_event: formData.report_event || null,
       device: formData.device || null,
-      event_details_status: formData.event_details_status || null,
+      event_details: formData.event_details || null,
       event_follow_id: formData.event_follow_id || null,
       event_repetitive_id: formData.event_repetitive_id,
-      alarm_status: formData.alarm_status || null,
+      alarm: formData.alarm || null,
       created_personnel_id: formData.created_personnel_id || null,
 
       // Contact details fields
@@ -258,7 +258,7 @@ private  toEnglishDigits(str) {
    */
   async updateContactStatus(
     contactId: number, 
-    status: { event_details_status: string; alarm_status?: string }
+    status: { event_details: string; alarm?: string }
   ): Promise<ApiResponse<ContactResponse['contact']>> {
     try {
       const response = await fetch(`${this.baseURL}/contacts/${contactId}`, {

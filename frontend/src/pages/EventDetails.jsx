@@ -1,6 +1,9 @@
 // import { createFileRoute } from '@tanstack/react-router'
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import operationalService from '@/services/operationalService';
+import eventService from '@/services/eventService';
+import personnelService from '@/services/personnelService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,12 +65,13 @@ const TopBarTimer = ({ startTime, label }) => {
 };
 
 export default function IncidentDispatchPage() {
+  const { id } = useParams();
   const [incident, setIncident] = useState(null);
   const [bases, setBases] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
   const [operationalRadius, setOperationalRadius] = useState(50);
   const [houses, setHouses] = useState([]);
-const [selectedHouses, setSelectedHouses] = useState([]);
+  const [selectedHouses, setSelectedHouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -76,68 +80,82 @@ const [selectedHouses, setSelectedHouses] = useState([]);
   const [selectedVolunteers, setSelectedVolunteers] = useState([]);
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   
-  // Mock data loading
+  // Load event data from API
   useEffect(() => {
-    const mockIncident = {
-        id: '70708',
-        incident_id: '70708',
-        title: 'تصادف جاده‌ای',
-        description: 'انحراف از جاده و برخورد با گاردریل پژو پارس',
-        incident_type: 'road_accident',
-        priority: 'medium', // متوسط
-        status: 'in_progress', // در حال پردازش
-        location: {
-            latitude: 35.761557,
-            longitude: 52.892990,
-            address: 'کیلومتر 46 محور سمنان به فیروزکوه',
-            city: 'فیروزکوه',
-            province: 'تهران'
-        },
-        operator_name: 'مهدی اکبری',
-        operator_code: 'OPR-1403-745',
-        casualties: 2,
-        time_reported: new Date(Date.now() - 29 * 60 * 1000 - 46 * 1000).toISOString(),
-        created_date: new Date().toISOString(),
-        updated_date: new Date().toISOString()
+    const fetchEventData = async () => {
+      try {
+        const eventId = id; // Fallback ID if not provided
+        const eventData = await eventService.getEventById(eventId);
+        setIncident(eventData);
+        
+        // After getting incident data with location, load operational resources
+        if (eventData && eventData.eventLocation) {
+          loadBasesAndVolunteers(eventData.eventLocation);
+        }
+      } catch (error) {
+        console.error('Error fetching event data:', error);
+      }
     };
     
-    setIncident(mockIncident);
-    loadBasesAndVolunteers();
-  }, []);
+    fetchEventData();
+  }, [id]);
+  
+  // Reload operational data when radius changes
+  useEffect(() => {
+    if (incident?.eventLocation) {
+      loadBasesAndVolunteers(incident.eventLocation);
+    }
+  }, [operationalRadius]);
 
-  const loadBasesAndVolunteers = async () => {
+  const loadBasesAndVolunteers = async (eventLocation = null) => {
     setLoading(true);
     try {
+      const location = eventLocation || incident?.eventLocation;
+      
+      if (!location) {
+        console.error('No location data available');
+        setLoading(false);
+        return;
+      }
+      
       // Load operational centers (bases) from API
       const basesData = await operationalService.getOperationalCenters({
-        lat: incident?.location?.latitude,
-        lon: incident?.location?.longitude,
+        lat: location.latitude,
+        lon: location.longitude,
         radius: operationalRadius,
         status: 'all'
       });
   
       // Load operational support homes from API
       const housesData = await operationalService.getOperationalSupportHomes({
-        lat: incident?.location?.latitude,
-        lon: incident?.location?.longitude,
+        lat: location.latitude,
+        lon: location.longitude,
         radius: operationalRadius,
         status: 'all'
       });
   
-      // Keep mock volunteers for now
-      const mockVolunteers = [
-        { id: 'V-001', full_name: 'علی احمدی', rank: 'rescuer_level_1', team: 'کوهستان', status: 'available', photo_url: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68c9142ccc29726cf2927dab/d709bd36f_image.png', location: { latitude: 35.75, longitude: 52.87 } },
-        { id: 'V-002', full_name: 'فاطمه رضایی', rank: 'rescue_assistant', team: 'شهری', status: 'available', photo_url: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68c9142ccc29726cf2927dab/7d49eaa47_image.png', location: { latitude: 35.78, longitude: 52.90 } },
-        { id: 'V-003', full_name: 'حسن کریمی', rank: 'rescuer_level_2', team: 'جاده', status: 'off_duty', photo_url: null, location: { latitude: 35.77, longitude: 52.88 } },
-      ];
-  
+      // Load active personnel from API
+      // Format the date as YYYY-MM-DD
+      const eventDate = incident?.time_reported 
+        ? new Date(incident.time_reported).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+      
+      const personnelData = await personnelService.getActivePersonnel({
+        lat: location.latitude,
+        lon: location.longitude,
+        radius: operationalRadius,
+        date: eventDate
+      });
+      
       setBases(basesData);
       setHouses(housesData);
-      setVolunteers(mockVolunteers);
+      setVolunteers(personnelData);
     } catch (error) {
       console.error('Error loading operational data:', error);
-      // Keep existing mock data as fallback
-      // [your existing mock data code stays the same]
+      // Set empty arrays instead of mock data
+      setBases([]);
+      setHouses([]);
+      setVolunteers([]);
     }
     setLoading(false);
   };
@@ -219,7 +237,7 @@ const [selectedHouses, setSelectedHouses] = useState([]);
                   volunteers={volunteers} 
                   selectedVolunteers={selectedVolunteers}
                   onSelectVolunteer={setSelectedVolunteers}
-                  incidentLocation={incident?.location}
+                  incidentLocation={incident?.eventLocation}
                 />
               </TabsContent>
               <TabsContent value="bases" className="m-0">
@@ -227,7 +245,7 @@ const [selectedHouses, setSelectedHouses] = useState([]);
                   bases={bases} 
                   selectedBases={selectedBases}
                   onSelectBase={setSelectedBases}
-                  incidentLocation={incident?.location}
+                  incidentLocation={incident?.eventLocation}
                 />
               </TabsContent>
               <TabsContent value="houses" className="m-0">
@@ -235,7 +253,7 @@ const [selectedHouses, setSelectedHouses] = useState([]);
     houses={houses} 
     selectedHouses={selectedHouses}
     onSelectHouse={setSelectedHouses}
-    incidentLocation={incident?.location}
+    incidentLocation={incident?.eventLocation}
   />
 </TabsContent>
             </div>
@@ -279,7 +297,7 @@ const [selectedHouses, setSelectedHouses] = useState([]);
         selectedBases={bases.filter(b => selectedBases.includes(b.id))}
         selectedVolunteers={volunteers.filter(v => selectedVolunteers.includes(v.id))}
         selectedHouses={houses.filter(h => selectedHouses.includes(h.id))}
-        incidentLocation={incident?.location}
+        incidentLocation={incident?.eventLocation}
       />
     </div>
   );

@@ -71,11 +71,13 @@ class OperationalSupportHomeController extends Controller
                     'location' => [
                         'latitude' => $home->lat,
                         'longitude' => $home->lon,
+                        'height' => $home->height,
                     ],
                     'status' => $home->status == 1 ? 'operational' : 'maintenance',
                     'current_occupancy' => rand(5, 25), // Mock data - replace with actual occupancy
                     'max_capacity' => rand(30, 80), // Mock data - replace with actual capacity
                     'manager_name' => $home->fullname,
+                    'manager_national_code' => $home->national_code,
                     'region' => $home->city?->name ?? $home->branch?->name,
                     'services' => $this->getServicesFromAreaType($home->area_type),
                     'facilities' => $this->getFacilitiesFromAreaType($home->area_type),
@@ -90,10 +92,27 @@ class OperationalSupportHomeController extends Controller
                     'address' => $home->address,
                     'postal_code' => $home->postal_code,
                     'province' => $home->province?->name,
+                    'province_id' => $home->province_id,
                     'branch' => $home->branch?->name,
+                    'branch_id' => $home->branches_id,
                     'city' => $home->city?->name,
+                    'city_id' => $home->city_id,
                     'town' => $home->town?->name,
+                    'town_id' => $home->town_id,
                     'area_type' => $home->area_type == 0 ? 'urban' : 'rural',
+                    'area_type_id' => $home->area_type,
+                    'section_id' => $home->section_id,
+                    'district' => $home->district,
+                    'rural_district_id' => $home->rural_district_id,
+                    'village_id' => $home->village_id,
+                    'img_header' => $home->img_header,
+                    'img_building' => $home->img_building,
+                    'description' => $home->description,
+                    'status_emis' => $home->status_emis,
+                    'status_equipment' => $home->status_equipment,
+                    'status_dims' => $home->status_dims,
+                    'status_air_relief' => $home->status_air_relief,
+                    'status_memberrcs' => $home->status_memberrcs,
                 ];
             });
 

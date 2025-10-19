@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertTriangle,
@@ -24,7 +25,10 @@ import {
 } from 'lucide-react';
 import { format, parseISO, isWithinInterval, subDays, subMonths } from 'date-fns';
 import { faIR } from 'date-fns/locale';
+import jalaliMoment from 'jalali-moment';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RechartsPieChart, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { api, eventService } from '@/lib/api';
+import { locationService } from '@/services/locationService';
 
 import IncidentFilters from '@/components/incidents/IncidentFilters';
 import IncidentCard from '@/components/incidents/IncidentCard';
@@ -32,24 +36,30 @@ import IncidentMetrics from '@/components/incidents/IncidentMetrics';
 import IncidentCharts from '@/components/incidents/IncidentCharts';
 import IncidentsMap from '@/components/incidents/IncidentsMap';
 import ExportReportModal from '@/components/modals/ExportReportModal';
+import { useToast } from "@/hooks/use-toast";
 
-const getIncidentTypeLabel = (type) => ({
-  'پزشکی': '🚑 اورژانس پزشکی',
-  'آتش‌سوزی': '🔥 آتش‌سوزی',
-  'تصادف': '🚗 تصادف رانندگی',
-  'جرم': '🚔 جرم در حال وقوع',
-  'مواد خطرناک': '☢️ مواد خطرناک',
-  'بلایای طبیعی': '🌪️ بلایای طبیعی',
-  'سایر': '❓ سایر موارد',
-  'road_accident': '🚗 تصادف جاده‌ای',
-  'mountain_rescue': '🏔️ امداد کوهستان',
-  'urban_emergency': '🏢 اورژانس شهری',
-  'natural_disaster': '🌪️ بلایای طبیعی',
-  'medical_emergency': '🚑 اورژانس پزشکی',
-  'fire': '🔥 آتش‌سوزی',
-  'flood': '💧 سیل',
-  'earthquake': '🌍 زلزله'
-}[type] || type);
+// Format date to Persian (Jalali) calendar
+const formatToPersianDate = (dateString) => {
+  if (!dateString) return '';
+  return jalaliMoment(dateString).locale('fa').format('jYYYY/jMM/jDD HH:mm');
+};
+
+// Get incident type label with icon from type_event relation
+const getIncidentTypeLabel = (incident) => {
+  // If we have type_event relation with name, use it
+  if (incident.event_type && incident.event_type.title) {
+    return incident.event_type.title;
+  }
+  
+};
+
+// Get icon path for incident type
+const getIncidentTypeIcon = (incident) => {
+  if (incident.event_type && incident.event_type.icon_path) {
+    return `/icon/${incident.event_type.icon_path}.png`;
+  }
+  return null;
+};
 
 const getPriorityLabel = (priority) => ({
   'P1': 'P1 - تهدید کننده حیات',
@@ -60,10 +70,20 @@ const getPriorityLabel = (priority) => ({
   'critical': 'P1 - بحرانی',
   'high': 'P2 - بالا',
   'medium': 'P3 - متوسط',
-  'low': 'P4 - پایین'
+  'low': 'P4 - پایین',
+  'بحرانی': 'P1 - بحرانی',
+  'بالا': 'P2 - بالا',
+  'متوسط': 'P3 - متوسط',
+  'پایین': 'P4 - پایین'
 }[priority] || priority);
 
 const getStatusLabel = (status) => ({
+  'در انتظار': 'در انتظار',
+  'ارجاع شده': 'ارجاع شده',
+  'درحال عملیات': 'درحال عملیات',
+  'پایان موقت': 'پایان موقت',
+  'پایان عملیات': 'پایان عملیات',
+  'لغو شده': 'لغو شده',
   'pending': 'در انتظار',
   'assigned': 'ارجاع شده',
   'in_progress': 'درحال عملیات',
@@ -79,6 +99,7 @@ export default function IncidentsListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('list');
+  const { toast } = useToast();
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -87,6 +108,7 @@ export default function IncidentsListPage() {
     status: '',
     province: '',
     city: '',
+    town: '',
     operator: '',
     dateRange: '30days',
     searchQuery: '',
@@ -103,225 +125,268 @@ export default function IncidentsListPage() {
     creationTimeFrom: '',
     creationTimeTo: ''
   });
+  
+  // Location data states
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [towns, setTowns] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState({
+    provinces: false,
+    cities: false,
+    towns: false
+  });
+
+  // Load provinces on component mount
+  useEffect(() => {
+    const loadProvinces = async () => {
+      setLoadingLocations(prev => ({ ...prev, provinces: true }));
+      try {
+        const data = await locationService.getProvinces();
+        setProvinces(data);
+      } catch (error) {
+        console.error('Failed to load provinces:', error);
+        toast({
+          title: "خطا",
+          description: "خطا در دریافت لیست استان‌ها",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLocations(prev => ({ ...prev, provinces: false }));
+      }
+    };
+
+    loadProvinces();
+  }, [toast]);
+
+  // Load cities when province changes
+  useEffect(() => {
+    if (!filters.province) {
+      setCities([]);
+      return;
+    }
+
+    const loadCities = async () => {
+      setLoadingLocations(prev => ({ ...prev, cities: true }));
+      try {
+        const data = await locationService.getCities(parseInt(filters.province));
+        setCities(data);
+      } catch (error) {
+        console.error('Failed to load cities:', error);
+        toast({
+          title: "خطا",
+          description: "خطا در دریافت لیست شهرستان‌ها",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLocations(prev => ({ ...prev, cities: false }));
+      }
+    };
+
+    loadCities();
+  }, [filters.province, toast]);
+
+  // Load towns when city changes
+  useEffect(() => {
+    if (!filters.city) {
+      setTowns([]);
+      return;
+    }
+
+    const loadTowns = async () => {
+      setLoadingLocations(prev => ({ ...prev, towns: true }));
+      try {
+        const townsData = await locationService.getTowns(parseInt(filters.city));
+        setTowns(townsData);
+      } catch (error) {
+        console.error('Failed to load towns:', error);
+        toast({
+          title: "خطا",
+          description: "خطا در دریافت لیست شهرها",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLocations(prev => ({ ...prev, towns: false }));
+      }
+    };
+
+    loadTowns();
+  }, [filters.city, toast]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  const generateMockIncidents = (count) => {
-    const incidentTypes = ['پزشکی', 'آتش‌سوزی', 'تصادف', 'جرم', 'مواد خطرناک', 'بلایای طبیعی', 'سایر'];
-    const priorities = ['P1', 'P2', 'P3', 'P4', 'P5'];
-    const statuses = ['pending', 'assigned', 'in_progress', 'temporarily_completed', 'completed', 'cancelled'];
-    const provinces = ['تهران', 'اصفهان', 'شیراز', 'مشهد', 'تبریز', 'اهواز'];
-    const cities = {
-      'تهران': ['تهران', 'کرج', 'ورامین', 'شهریار'],
-      'اصفهان': ['اصفهان', 'کاشان', 'نجف آباد', 'خمینی شهر'],
-      'شیراز': ['شیراز', 'کازرون', 'مرودشت', 'جهرم'],
-      'مشهد': ['مشهد', 'نیشابور', 'سبزوار', 'تربت حیدریه'],
-      'تبریز': ['تبریز', 'مراغه', 'میانه', 'اهر'],
-      'اهواز': ['اهواز', 'آبادان', 'خرمشهر', 'دزفول']
-    };
-    const operators = ['مهدی اکبری', 'فاطمه رضایی', 'علی محمدی', 'زهرا احمدی', 'حسن کریمی'];
-    const contactTypes = ["call_112", "application", "operator_entry"];
-
-    return Array.from({ length: count }, (_, i) => {
-      const province = provinces[i % provinces.length];
-      const cityOptions = cities[province];
-      const city = cityOptions[Math.floor(Math.random() * cityOptions.length)];
-      
-      return {
-        id: `INC-${String(i + 1).padStart(4, `0`)}`,
-        incident_id: `70${String(i + 708).padStart(3, `0`)}`,
-        title: `حادثه ${getIncidentTypeLabel(incidentTypes[i % incidentTypes.length]).split(` `)[1] || `عمومی`}`,
-        description: `شرح کامل حادثه شماره ${i + 1}`,
-        incident_type: incidentTypes[i % incidentTypes.length],
-        priority: priorities[i % priorities.length],
-        status: statuses[i % statuses.length],
-        contact_type: contactTypes[i % contactTypes.length],
-        location: {
-          latitude: 35.6892 + (Math.random() - 0.5) * 0.1,
-          longitude: 51.3890 + (Math.random() - 0.5) * 0.1,
-          address: `خیابان ${i + 1}، منطقه ${(i % 22) + 1}`,
-          city: city,
-          province: province
-        },
-        operator_name: operators[i % operators.length],
-        operator_code: `OPR-1403-${String(i + 700).padStart(3, `0`)}`,
-        recipient_phone: `09${String(Math.floor(Math.random() * 1000000000)).padStart(9, '0')}`,
-        operator_internal_phone: `${String(Math.floor(Math.random() * 9999) + 1000)}`,
-        user_registration: ['system', 'operator', 'citizen'][i % 3],
-        casualties: Math.floor(Math.random() * 5),
-        affected_people: Math.floor(Math.random() * 10),
-        time_reported: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        created_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_date: new Date().toISOString()
-      };
-    });
-  };
+  const navigate = useNavigate();
 
   const loadIncidents = React.useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      // Generate mock incidents data
-      const mockIncidents = generateMockIncidents(50);
-      setIncidents(mockIncidents);
+      // Build filters for the API
+      const apiFilters = {
+        per_page: 50
+      };
+      
+      // Add date range filters if applicable
+      if (filters.dateRange !== 'all') {
+        const now = new Date();
+        let fromDate;
+        
+        switch (filters.dateRange) {
+          case '24hours':
+            fromDate = subDays(now, 1);
+            break;
+          case '7days':
+            fromDate = subDays(now, 7);
+            break;
+          case '30days':
+            fromDate = subDays(now, 30);
+            break;
+          case '90days':
+            fromDate = subDays(now, 90);
+            break;
+          case '1year':
+            fromDate = subMonths(now, 12);
+            break;
+          default:
+            fromDate = subDays(now, 30);
+        }
+        
+        apiFilters.from = fromDate.toISOString().split('T')[0];
+      }
+      
+      // Add all filter parameters to API request
+      if (filters.incidentType) {
+        apiFilters.incident_type = filters.incidentType;
+      }
+      
+      if (filters.priority) {
+        apiFilters.priority = filters.priority;
+      }
+      
+      if (filters.status) {
+        apiFilters.status = filters.status;
+      }
+      
+      // Add location filters
+      if (filters.province) {
+        apiFilters.province_id = filters.province;
+      }
+      
+      if (filters.city) {
+        apiFilters.city_id = filters.city;
+      }
+      
+      if (filters.town) {
+        apiFilters.town_id = filters.town;
+      }
+      
+      // Add operator filters
+      if (filters.operator) {
+        apiFilters.operator = filters.operator;
+      }
+      
+      if (filters.operatorCode) {
+        apiFilters.operator_code = filters.operatorCode;
+      }
+      
+      if (filters.operatorName) {
+        apiFilters.operator_name = filters.operatorName;
+      }
+      
+      if (filters.operatorInternalPhone) {
+        apiFilters.operator_internal_phone = filters.operatorInternalPhone;
+      }
+      
+      // Add contact filters
+      if (filters.contactType) {
+        apiFilters.contact_type = filters.contactType;
+      }
+      
+      if (filters.recipientPhone) {
+        apiFilters.recipient_phone = filters.recipientPhone;
+      }
+      
+      if (filters.contactDescription) {
+        apiFilters.description = filters.contactDescription;
+      }
+      
+      if (filters.userRegistration) {
+        apiFilters.user_registration = filters.userRegistration;
+      }
+      
+      // Add date and time filters
+      if (filters.contactDateFrom) {
+        apiFilters.contact_date_from = filters.contactDateFrom;
+      }
+      
+      if (filters.contactDateTo) {
+        apiFilters.contact_date_to = filters.contactDateTo;
+      }
+      
+      if (filters.contactTime) {
+        apiFilters.contact_time = filters.contactTime;
+      }
+      
+      if (filters.creationTimeFrom) {
+        apiFilters.creation_time_from = filters.creationTimeFrom;
+      }
+      
+      if (filters.creationTimeTo) {
+        apiFilters.creation_time_to = filters.creationTimeTo;
+      }
+      
+      // Add search query if available
+      if (filters.searchQuery) {
+        apiFilters.q = filters.searchQuery;
+      }
+      
+      // Use the API service to fetch events
+      const params = new URLSearchParams(apiFilters);
+      const response = await api.get(`/contact-events?${params.toString()}`);
+      setIncidents(response.data || []);
+      
+      // Set filtered incidents directly from API response
+      setFilteredIncidents(response.data || []);
     } catch (error) {
       console.error('Error loading incidents:', error);
+      // Show a more user-friendly error message
+      toast({
+        title: "خطا در بارگذاری",
+        description: "خطا در دریافت اطلاعات حوادث. لطفا دوباره تلاش کنید.",
+        variant: "destructive",
+      });
+      // Set empty array instead of mock data
+      setIncidents([]);
+      setFilteredIncidents([]);
     } finally {
       if (!isRefresh) setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   const applyFilters = React.useCallback(() => {
-    let filtered = [...incidents];
+    // Set filtered incidents directly from the loaded incidents
+    // All filtering is now handled server-side through the API
+    setFilteredIncidents(incidents);
+  }, [incidents]);
 
-    // Apply filters
-    if (filters.incidentType) {
-      filtered = filtered.filter(incident => incident.incident_type === filters.incidentType);
-    }
-
-    if (filters.priority) {
-      filtered = filtered.filter(incident => incident.priority === filters.priority);
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter(incident => incident.status === filters.status);
-    }
-
-    if (filters.province) {
-      filtered = filtered.filter(incident => incident.location?.province === filters.province);
-    }
-
-    if (filters.city) {
-      filtered = filtered.filter(incident => incident.location?.city === filters.city);
-    }
-
-    if (filters.operator) {
-      filtered = filtered.filter(incident =>
-        incident.operator_name.toLowerCase().includes(filters.operator.toLowerCase())
-      );
-    }
-
-    if (filters.operatorCode) {
-      filtered = filtered.filter(incident => incident.operator_code === filters.operatorCode);
-    }
-
-    if (filters.contactType) {
-      filtered = filtered.filter(incident => incident.contact_type === filters.contactType);
-    }
-
-    if (filters.recipientPhone) {
-      filtered = filtered.filter(incident =>
-        incident.recipient_phone?.includes(filters.recipientPhone)
-      );
-    }
-
-    if (filters.contactDescription) {
-      filtered = filtered.filter(incident =>
-        incident.description?.toLowerCase().includes(filters.contactDescription.toLowerCase())
-      );
-    }
-
-    if (filters.operatorName) {
-      filtered = filtered.filter(incident =>
-        incident.operator_name?.toLowerCase().includes(filters.operatorName.toLowerCase())
-      );
-    }
-
-    if (filters.operatorInternalPhone) {
-      filtered = filtered.filter(incident =>
-        incident.operator_internal_phone?.includes(filters.operatorInternalPhone)
-      );
-    }
-
-    if (filters.userRegistration) {
-      filtered = filtered.filter(incident => incident.user_registration === filters.userRegistration);
-    }
-
-    if (filters.contactDateFrom) {
-      const fromDate = new Date(filters.contactDateFrom);
-      filtered = filtered.filter(incident => new Date(incident.time_reported) >= fromDate);
-    }
-
-    if (filters.contactDateTo) {
-      const toDate = new Date(filters.contactDateTo);
-      toDate.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(incident => new Date(incident.time_reported) <= toDate);
-    }
-
-    if (filters.contactTime) {
-      filtered = filtered.filter(incident => {
-        const incidentTime = new Date(incident.time_reported);
-        const incidentTimeStr = incidentTime.toTimeString().slice(0, 5);
-        return incidentTimeStr === filters.contactTime;
-      });
-    }
-
-    if (filters.creationTimeFrom) {
-      const fromDateTime = new Date(filters.creationTimeFrom);
-      filtered = filtered.filter(incident => new Date(incident.created_date) >= fromDateTime);
-    }
-
-    if (filters.creationTimeTo) {
-      const toDateTime = new Date(filters.creationTimeTo);
-      filtered = filtered.filter(incident => new Date(incident.created_date) <= toDateTime);
-    }
-
-    if (filters.searchQuery) {
-      filtered = filtered.filter(incident =>
-        incident.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-        incident.incident_id.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-        incident.description.toLowerCase().includes(filters.searchQuery.toLowerCase())
-      );
-    }
-
-    // Apply date range filter
-    if (filters.dateRange !== 'all') {
-      const now = new Date();
-      let startDate;
-
-      switch (filters.dateRange) {
-        case '24hours':
-          startDate = subDays(now, 1);
-          break;
-        case '7days':
-          startDate = subDays(now, 7);
-          break;
-        case '30days':
-          startDate = subDays(now, 30);
-          break;
-        case '90days':
-          startDate = subDays(now, 90);
-          break;
-        case '1year':
-          startDate = subMonths(now, 12);
-          break;
-        default:
-          startDate = subDays(now, 30);
-      }
-
-      filtered = filtered.filter(incident =>
-        new Date(incident.time_reported) >= startDate
-      );
-    }
-
-    // Sort by most recent first
-    filtered.sort((a, b) => new Date(b.time_reported) - new Date(a.time_reported));
-
-    setFilteredIncidents(filtered);
-  }, [incidents, filters]);
-
+  // Main useEffect to load incidents on component mount
   useEffect(() => {
+     applyFilters();
+    setCurrentPage(1);
     loadIncidents();
-  }, [loadIncidents]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
+  }, []);
+  
+  // We no longer automatically apply filters when they change
+  // Instead, we'll apply them only when the search button is clicked
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
+    // Don't apply filters automatically
+  };
+  
+  const handleSearch = () => {
+    applyFilters();
     setCurrentPage(1);
+    loadIncidents();
   };
 
   const clearFilters = () => {
@@ -364,10 +429,12 @@ export default function IncidentsListPage() {
   // Calculate metrics
   const metrics = {
     total: filteredIncidents.length,
-    pending: filteredIncidents.filter(i => i.status === 'pending').length,
-    inProgress: filteredIncidents.filter(i => i.status === 'in_progress').length,
-    completed: filteredIncidents.filter(i => i.status === 'completed').length,
-    highPriority: filteredIncidents.filter(i => ['P1', 'P2'].includes(i.priority)).length,
+    pending: filteredIncidents.filter(i => i.status === 'pending' || i.status === 'در انتظار').length,
+    inProgress: filteredIncidents.filter(i => i.status === 'in_progress' || i.status === 'درحال عملیات').length,
+    completed: filteredIncidents.filter(i => i.status === 'completed' || i.status === 'پایان عملیات').length,
+    highPriority: filteredIncidents.filter(i => 
+      ['P1', 'P2', 'high', 'بالا', 'بحرانی'].includes(i.priority)
+    ).length,
     avgResponseTime: '12.5' // Mock average
   };
 
@@ -432,7 +499,11 @@ export default function IncidentsListPage() {
           incidents={incidents}
           onRefresh={handleRefreshClick}
           isRefreshing={isRefreshing}
-          onSearch={() => setIsExportModalOpen(true)}
+          onSearch={handleSearch}
+          provinces={provinces}
+          cities={cities}
+          towns={towns}
+          loadingLocations={loadingLocations}
         />
 
             {/* Results Summary */}
@@ -455,7 +526,7 @@ export default function IncidentsListPage() {
             {/* Incidents Table */}
             {currentIncidents.length > 0 ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full">
+                <table className="w-full" dir="rtl">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">نوع حادثه</th>
@@ -468,7 +539,59 @@ export default function IncidentsListPage() {
                   </thead>
                   <tbody>
                     {currentIncidents.map(incident => (
-                      <IncidentCard key={incident.id} incident={incident} />
+                      <tr key={incident.id || incident.incident_id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-right text-sm text-gray-900">
+                          {getIncidentTypeIcon(incident) && (
+                            <img 
+                              src={getIncidentTypeIcon(incident)} 
+                              alt="نوع حادثه" 
+                              className="inline-block w-5 h-5 ml-1" 
+                            />
+                          )}
+                          {getIncidentTypeLabel(incident)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-900">
+                          {incident.location?.village}, 
+                          {incident.location?.town || '-'}, 
+                          {incident.location?.city || '-'}, 
+                          {incident.location?.province || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-900">
+                          {incident.operator_name || incident.user_name || 'نامشخص'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-900">
+                          
+                          {incident.date_call ? incident.date_call:formatToPersianDate(incident.created_at)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              incident.priority === 'high' ? 'bg-red-100 text-red-800' : 
+                              incident.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {incident.priority || 'medium'}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              incident.status === 'pending' || incident.status === 'در انتظار' ? 'bg-blue-100 text-blue-800' : 
+                              incident.status === 'in_progress' || incident.status === 'درحال عملیات' ? 'bg-purple-100 text-purple-800' : 
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {getStatusLabel(incident.status) || 'فعال'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={()=>navigate(`/events/${incident.id || incident.incident_id}`)}
+                          >
+                            <Eye className="w-4 h-4 ml-1" />
+                            جزئیات
+                          </Button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
