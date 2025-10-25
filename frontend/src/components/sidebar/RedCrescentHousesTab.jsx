@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Phone, MessageSquare, Heart, Clock, MessageCircle, CheckCircle, Radio, Home, Users, Bed } from 'lucide-react';
+import { Phone, MessageSquare, Heart, Clock, MessageCircle, CheckCircle, Radio, Home, Users, Bed, MapPin, PhoneCall, Building, User, Map, Briefcase, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 
@@ -55,15 +55,67 @@ const getCapacityStatusColor = (current, max) => {
     return 'bg-red-100 text-red-700';
 };
 
-export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectHouse, incidentLocation }) {
+export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectHouse, incidentLocation, onPersonnelSelect }) {
   const [filterType, setFilterType] = useState('all');
   const [filterCapacity, setFilterCapacity] = useState('all');
+  const [openHousePersonnel, setOpenHousePersonnel] = useState(null);
+  const [selectedPersonnel, setSelectedPersonnel] = useState({});
 
   const handleHouseSelect = (houseId) => {
     const newSelection = selectedHouses.includes(houseId)
       ? selectedHouses.filter(id => id !== houseId)
       : [...selectedHouses, houseId];
     onSelectHouse(newSelection);
+  };
+
+  const toggleHousePersonnel = (houseId) => {
+    setOpenHousePersonnel(prev => prev === houseId ? null : houseId);
+  };
+
+  const handleSelectPerson = (houseId, personId, checked) => {
+    setSelectedPersonnel(prev => {
+      const housePersonnel = prev[houseId] || [];
+      const newSelectedPersonnel = checked
+        ? { ...prev, [houseId]: [...housePersonnel, personId] }
+        : { ...prev, [houseId]: housePersonnel.filter(id => id !== personId) };
+      
+      // Notify parent component if onPersonnelSelect is provided
+      if (onPersonnelSelect) {
+        onPersonnelSelect(newSelectedPersonnel);
+      }
+      
+      return newSelectedPersonnel;
+    });
+  };
+
+  const handleSelectAllPersonnel = (houseId, checked) => {
+    const house = houses.find(h => h.id === houseId);
+    if (!house || !house.personnel) return;
+    
+    setSelectedPersonnel(prev => {
+      const newSelectedPersonnel = checked
+        ? { ...prev, [houseId]: house.personnel.map(person => person.id) }
+        : { ...prev, [houseId]: [] };
+      
+      // Notify parent component if onPersonnelSelect is provided
+      if (onPersonnelSelect) {
+        onPersonnelSelect(newSelectedPersonnel);
+      }
+      
+      return newSelectedPersonnel;
+    });
+  };
+
+  const isPersonSelected = (houseId, personId) => {
+    return selectedPersonnel[houseId]?.includes(personId) || false;
+  };
+
+  const isAllPersonnelSelected = (houseId) => {
+    const house = houses.find(h => h.id === houseId);
+    if (!house || !house.personnel || house.personnel.length === 0) return false;
+    
+    const housePersonnel = selectedPersonnel[houseId] || [];
+    return house.personnel.length === housePersonnel.length;
   };
 
   const filteredHouses = houses.filter(house => {
@@ -164,15 +216,44 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
 
                 {/* House details */}
                 <div className="mr-8 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                    <span className="text-gray-600">نوع: {getHouseTypeLabel(house.house_type)}</span>
-                    <span className="text-gray-600">منطقه: {house.region || house.city || house.location?.city || 'نامشخص'}</span>
-                    <span className="text-gray-600">مسئول: {house.manager_name || house.contact_info?.manager || house.contact_person || 'نامشخص'}</span>
-                    <span className="text-gray-600">کد رادیویی: {house.contact_info?.vhf_prefix ? `${house.contact_info.vhf_prefix}-${house.contact_info.vhf_code || ''}` : house.operational_code || 'نامشخص'}</span>
-                    <span className="text-gray-600">ETA: {calculateETA(house.location, incidentLocation)} دقیقه</span>
+                    <span className="text-gray-600 flex items-center gap-1">
+                        <Briefcase className="w-3.5 h-3.5 text-blue-500" />
+                        نوع: {getHouseTypeLabel(house.house_type)}
+                    </span>
+                    <span className="text-gray-600 flex items-center gap-1">
+                        <Building className="w-3.5 h-3.5 text-blue-500" />
+                        استان: {house.province || 'نامشخص'}
+                    </span>
+                    <span className="text-gray-600 flex items-center gap-1">
+                        <Map className="w-3.5 h-3.5 text-blue-500" />
+                        شهرستان: {house.city || 'نامشخص'}
+                    </span>
+                    <span className="text-gray-600 flex items-center gap-1">
+                        <Home className="w-3.5 h-3.5 text-blue-500" />
+                        شهر: {house.town || 'نامشخص'}
+                    </span>
+                    {house.distance && (
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                        فاصله: {house.distance.toFixed(2)} کیلومتر
+                      </span>
+                    )}
+                    <span className="text-gray-600 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-blue-500" />
+                        مسئول: {house.manager_name || house.contact_info?.manager || house.contact_person || 'نامشخص'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <a href={`tel:${house.contact_info?.mobile}`} className="text-gray-600 flex gap-1 hover:underline">
+                            <PhoneCall className="w-3.5 h-3.5 text-blue-500" />
+                            {house.contact_info?.mobile}
+                        </a>
+                    </div>
+                    {/* <span className="text-gray-600">کد رادیویی: {house.contact_info?.vhf_prefix ? `${house.contact_info.vhf_prefix}-${house.contact_info.vhf_code || ''}` : house.operational_code || 'نامشخص'}</span>
+                    <span className="text-gray-600">ETA: {calculateETA(house.location, incidentLocation)} دقیقه</span> */}
                 </div>
 
                 {/* Capacity status */}
-                <div className="mr-8 flex items-center gap-2">
+                {/* <div className="mr-8 flex items-center gap-2">
                   <span className="text-xs font-semibold text-blue-600">ظرفیت:</span>
                   <div className="flex items-center gap-2 flex-1">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
@@ -183,10 +264,10 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
                     </div>
                     <span className="text-xs text-gray-600">{house.current_occupancy}/{house.max_capacity}</span>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Services */}
-                <div className="mr-8 flex flex-wrap gap-1">
+                {/* <div className="mr-8 flex flex-wrap gap-1">
                    <span className="text-xs font-semibold text-purple-600 mr-2">خدمات:</span>
                    {house.services && house.services.length > 0 ? 
                       house.services.slice(0, 2).map((service, index) => (
@@ -201,20 +282,20 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
                        +{house.services.length - 2}
                      </Badge>
                    )}
-                </div>
+                </div> */}
                 
                 {/* Facilities */}
-                <div className="mr-8 flex flex-wrap gap-1 items-center">
+                {/* <div className="mr-8 flex flex-wrap gap-1 items-center">
                   {house.facilities && house.facilities.slice(0,3).map((facility, index) => (
                       <Badge key={index} variant="secondary" className="text-xs bg-gray-100 text-gray-700 font-normal">{facility}</Badge>
                   ))}
                   {house.facilities && house.facilities.length > 3 && (
                       <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 font-normal">+{house.facilities.length - 3}</Badge>
                   )}
-                </div>
+                </div> */}
 
                 {/* Last activity */}
-                {house.status === 'operational' ? (
+                {/* {house.status === 'operational' ? (
                   <div className="mr-8 flex items-center gap-2 text-sm text-green-600">
                     <CheckCircle className="w-4 h-4" />
                     <span>آخرین فعالیت: {formatDistanceToNow(new Date(house.last_activity_time), { addSuffix: true, locale: faIR })}</span>
@@ -224,10 +305,10 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
                     <Clock className="w-4 h-4" />
                     <span>در حال تعمیرات: {formatDistanceToNow(new Date(house.maintenance_start_time), { locale: faIR })}</span>
                   </div>
-                )}
+                )} */}
 
                 {/* Communication buttons and contact info */}
-                <div className="flex justify-between items-center pt-2 border-t mt-2">
+                {/* <div className="flex justify-between items-center pt-2 border-t mt-2">
                   <div className="flex gap-2">
                     <Button size="icon" className="w-7 h-7 bg-green-500 hover:bg-green-600"><Phone className="w-4 h-4" /></Button>
                     <Button size="icon" className="w-7 h-7 bg-blue-500 hover:bg-blue-600"><MessageSquare className="w-4 h-4" /></Button>
@@ -235,17 +316,68 @@ export default function RedCrescentHousesTab({ houses, selectedHouses, onSelectH
                     <Button size="icon" className="w-7 h-7 bg-orange-500 hover:bg-orange-600"><Radio className="w-4 h-4" /></Button>
                   </div>
                   <span className="text-xs text-gray-400 font-mono">خانه {house.contact_info?.radio_code || 'H-001'}</span>
-                </div>
+                </div> */}
 
                 {/* Assignment button - only show for selected houses */}
-                {isSelected && (
+                {/* Show Personnel Button */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  {/* <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => toggleHousePersonnel(house.id)}
+                  >
+                    <Users className="w-4 h-4 ml-2" />
+                    نمایش افراد
+                  </Button> */}
+                  
+                  {openHousePersonnel === house.id && (
+                    <div className="mt-3 border rounded-lg p-3 bg-white">
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="font-medium">لیست افراد خانه هلال</h5>
+                        <div className="flex items-center">
+                          <Checkbox 
+                            id={`select-all-${house.id}`}
+                            checked={isAllPersonnelSelected(house.id)}
+                            onCheckedChange={(checked) => handleSelectAllPersonnel(house.id, checked)}
+                          />
+                          <label htmlFor={`select-all-${house.id}`} className="mr-2 text-xs">
+                            انتخاب همه
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-40 overflow-y-auto">
+                        {house.personnel?.length > 0 ? (
+                          house.personnel.map(person => (
+                            <div key={person.id} className="flex items-center py-1 border-b border-gray-100 last:border-0">
+                              <Checkbox 
+                                id={`person-${person.id}`}
+                                checked={isPersonSelected(house.id, person.id)}
+                                onCheckedChange={(checked) => handleSelectPerson(house.id, person.id, checked)}
+                              />
+                              <label htmlFor={`person-${person.id}`} className="mr-2 flex-1 flex items-center justify-between">
+                                <span>{person.name || person.full_name}</span>
+                                <span className="text-xs text-gray-500">{person.role || person.specialization || 'داوطلب'}</span>
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-2 text-gray-500 text-sm">اطلاعات افراد در دسترس نیست</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* {isSelected && (
                   <Button 
-                    className="w-full bg-red-600 hover:bg-red-700 h-9 text-sm"
+                    className="w-full bg-red-600 hover:bg-red-700 h-9 text-sm mt-3"
                     onClick={() => document.querySelector('header button[class*="bg-red"]').click()}
                   >
                     تخصیص به خانه هلال احمر
                   </Button>
-                )}
+                )} */}
               </div>
             </Card>
           );

@@ -10,6 +10,60 @@ use App\Http\Controllers\Controller;
 use App\Models\LogoutEvent;
 class AuthController extends Controller
 {
+    public function verifyPersonnel(Request $request)
+    {
+        $validated = $request->validate([
+            'national_code' => 'required|string|size:10',
+        ]);
+
+        // First try to call the external API
+        $client = new \GuzzleHttp\Client();
+        $apiKey = '0b337280538c31061cab9ced9004832a2a3358bf';
+        $persianDate = verta()->format("Y/m/d"); // Using jdate if available, or you can use a fixed date
+        
+        try {
+            $response = $client->request('POST', 'https://raromis.ir/superapp/emis/check-personnel', [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                ],
+                        'verify' => false, // Disable SSL verification
+                'json' => [
+                    'api_key' => $apiKey,
+                    'date' => $persianDate,
+                    'national_code' => $validated['national_code']
+                ]
+            ]);
+            
+            $apiResponse = json_decode($response->getBody()->getContents(), true);
+            
+            // Check if API response is valid and contains personnel data
+            if (count($apiResponse)) {
+                $personnelData = $apiResponse[0];
+                $roleStatus = isset($personnelData['state']) ? $personnelData['state']:null; // 1 for admin, 2 for operator
+                
+                return response()->json([
+                    'status' => $roleStatus,
+                    'role' => $roleStatus == 1 ? 'admin' : 'operator',
+                    'id' => $personnelData['personnel_id'],
+                    'name' => $personnelData['name'],
+                    'family' => $personnelData['family'],
+                    'shift' => isset($personnelData['shift']) ? $personnelData['shift']:null,
+                    'date' => isset($personnelData['date']) ? $personnelData['date']:null,
+                    'time_start' => isset($personnelData['time_s']) ? $personnelData['time_s']:null,
+                    'time_end' => isset($personnelData['time_e']) ? $personnelData['time_e']:null,
+                    'post' => isset($personnelData['post']) ? $personnelData['post']:null,
+                    'center' => isset($personnelData['operational_centers_title']) ? $personnelData['operational_centers_title']:null,
+                    'province' => isset($personnelData['province_title']) ? $personnelData['province_title']:null
+                ], 200);
+            }
+        } catch (\Exception $e) {
+            dd($e);
+            \Log::error('External API error: ' . $e->getMessage());
+            // Fall back to local database if API fails
+        }
+        
+    }
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -34,15 +88,40 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email',
+            'national_code' => 'required|string|size:10',
             'password' => 'required|string',
+            'personnelDetails'=>'required'
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        // Find personnel by national code and ID
+        $personnel = \App\Models\Personnel::where('national_code', $validated['national_code'])
+            ->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+        if (!$personnel) {
+            
+            return response()->json([
+            'status'=>'error',
+                'message'=>'کد ملی یافت نشد.'
+            ]);
+        }
+
+        // Find user associated with this personnel
+        $user = User::with("personnel")->where('personnel_id', $personnel->id)->first();
+
+      if(!$user){
+            
+            return response()->json([
+            'status'=>'error',
+                'message'=>'نام کاربری یا رمز عبور یافت نشد'
+            ]);
+      }
+
+        // Verify password
+        if (!Hash::check($validated['password'], $user->password)) {
+          
+            return response()->json([
+            'status'=>'error',
+                'message'=>'رمز عبور اشتباه است.'
             ]);
         }
 
@@ -50,15 +129,18 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
-            'token' => $token,
-            'user' => $user,
+            'status'=>'success',
+            'data'=>[
+                'token' => $token,
+                'user' => $user->load("personnel")
+            ]
         ]);
     }
 
     public function logout(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'nullable|string',
+            'reason' => 'nullable|string',
             'description' => 'nullable|string',
             'duration' => 'nullable|integer',
             'supervisorApproval' => 'nullable|boolean',
@@ -67,8 +149,8 @@ class AuthController extends Controller
 
         if (!empty($validated)) {
             LogoutEvent::create([
-                'user_id' => $request->user()->id,
-                'type' => $validated['type'] ?? null,
+                'personnel_id' => $request->user()->personnel_id,
+                'reason' => $validated['reason'] ?? null,
                 'description' => $validated['description'] ?? null,
                 'duration' => $validated['duration'] ?? null,
                 'supervisor_approval' => $validated['supervisorApproval'] ?? false,

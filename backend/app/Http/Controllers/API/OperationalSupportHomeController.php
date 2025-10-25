@@ -45,25 +45,36 @@ class OperationalSupportHomeController extends Controller
                 $query->where('status', $status);
             }
 
-            // Filter by location radius if provided
-            if ($request->has(['lat', 'lon', 'radius'])) {
+            // Add distance calculation if lat/lon provided
+            if ($request->has(['lat', 'lon'])) {
                 $lat = $request->lat;
                 $lon = $request->lon;
-                $radius = $request->radius; // in kilometers
-
-                // Using Haversine formula for distance calculation
-                $query->whereRaw("
-                    (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) <= ?
-                ", [$lat, $lon, $lat, $radius]);
+                
+                // Calculate distance using Haversine formula
+                $query->selectRaw("*, 
+                    ROUND((6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))), 2) AS distance", 
+                    [$lat, $lon, $lat]
+                );
+                
+                // Filter by radius if provided
+                if ($request->has('radius')) {
+                    $radius = $request->radius; // in kilometers
+                    $query->whereRaw("
+                        (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) <= ?
+                    ", [$lat, $lon, $lat, $radius]);
+                }
+                
                 $query->whereNotNull('lat')->whereNotNull('lon');
-
+                
+                // Sort by distance
+                $query->orderBy('distance', 'asc');
             }
 
             $homes = $query->limit(100)->get();
 
             // Transform data for frontend
             $transformedHomes = $homes->map(function ($home) {
-                return [
+                $data = [
                     'id' => $home->id,
                     'house_code' => $home->three_digit_code ?? $home->coding,
                     'name' => $home->title,
@@ -91,13 +102,13 @@ class OperationalSupportHomeController extends Controller
                     ],
                     'address' => $home->address,
                     'postal_code' => $home->postal_code,
-                    'province' => $home->province?->name,
+                    'province' => $home->province?->title,
                     'province_id' => $home->province_id,
-                    'branch' => $home->branch?->name,
+                    'branch' => $home->branch?->title,
                     'branch_id' => $home->branches_id,
-                    'city' => $home->city?->name,
+                    'city' => $home->city?->title,
                     'city_id' => $home->city_id,
-                    'town' => $home->town?->name,
+                    'town' => $home->town?->title,
                     'town_id' => $home->town_id,
                     'area_type' => $home->area_type == 0 ? 'urban' : 'rural',
                     'area_type_id' => $home->area_type,
@@ -114,6 +125,13 @@ class OperationalSupportHomeController extends Controller
                     'status_air_relief' => $home->status_air_relief,
                     'status_memberrcs' => $home->status_memberrcs,
                 ];
+                
+                // Add distance if available
+                if (isset($home->distance)) {
+                    $data['distance'] = $home->distance;
+                }
+                
+                return $data;
             });
 
             return response()->json([

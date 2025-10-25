@@ -26,20 +26,17 @@ class RecordPersonsStatusController extends Controller
             $date = $request->date;
             $lat = $request->lat;
             $lon = $request->lon;
-            // $radius = $request->radius; // in kilometers
-            $radius = 10000;
+            $radius = $request->radius; // in kilometers
             
             // Get the latest record for each personnel within the date range
-            $latestRecordsQuery = RecordPersonsStatus::select('personnel_id', \DB::raw('MAX(CONCAT(date, " ", time)) as latest_datetime'));
-            
-            // First get the latest records without distance calculation
-            $latestRecordsQuery->whereNotNull('lat')
+            $latestRecordsQuery = RecordPersonsStatus::select('personnel_id', \DB::raw('MAX(CONCAT(date, " ", time)) as latest_datetime'))
+                ->whereNotNull('lat')
                 ->whereNotNull('lon')
                 ->whereBetween('date', [verta()->parse($date)->subDays(1)->format("Y/m/d"), $date])
                 ->groupBy('personnel_id');
                 
-            // Apply location filter if radius is provided
-            if($lat && $lon && $radius) {
+            if($lat && $lon && $radius){
+                // Apply location filter if coordinates and radius are provided
                 $latestRecordsQuery->whereRaw("
                     (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) <= ?
                 ", [$lat, $lon, $lat, $radius]);
@@ -52,17 +49,8 @@ class RecordPersonsStatusController extends Controller
             $latestDatetimes = $latestRecords->pluck('latest_datetime', 'personnel_id')->toArray();
             
             $query = RecordPersonsStatus::with("personnel", "personnel.profileUpload", "personnel_mobile", 
-                                             "personnel.city", "personnel.city.province", "personnel.town");
-                                             
-            // Add distance calculation to the main query if coordinates are provided
-            if($lat && $lon) {
-                $query->selectRaw('record_persons_status.*, (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) as distance', 
-                    [$lat, $lon, $lat]);
-            } else {
-                $query->select('record_persons_status.*');
-            }
-            
-            $query->whereIn('personnel_id', $personnelIds)
+                                             "personnel.city", "personnel.city.province", "personnel.town")
+                ->whereIn('personnel_id', $personnelIds)
                 ->where('status', 1); // Only active personnel (ready for service)
                 
             // Add a where clause for each personnel to get their latest record
@@ -77,11 +65,6 @@ class RecordPersonsStatusController extends Controller
                 }
             });
             
-            // Order by distance if coordinates were provided
-            if($lat && $lon) {
-                $query->orderBy('distance', 'asc');
-            }
-            
             $personnelStatuses = $query->get();
             
             // Transform data for frontend
@@ -94,6 +77,7 @@ class RecordPersonsStatusController extends Controller
                 
                 return array_merge([
                     'id' => $personnel->id,
+                    
                     'personnel_id' => $status->personnel_id,
                     'full_name' => $personnel->name . ' ' . $personnel->family,
                     'rank' => $this->getRankFromJobId($personnel->job_id),
@@ -104,17 +88,11 @@ class RecordPersonsStatusController extends Controller
                         'latitude' => $status->lat,
                         'longitude' => $status->lon,
                     ],
-                    'distance' => $status->distance ?? null, // Include distance from database query
                     'personnel_mobile'=>optional($status->personnel_mobile)->phone,
                     'personnel_num' => $personnel->personnel_num,
                     'last_update' => $status->date . ' ' . $status->time,
                 ],$personnel->toArray());
             })->filter(); // Remove null entries
-            
-            // Sort by distance if coordinates were provided
-            if ($lat && $lon) {
-                $transformedPersonnel = $transformedPersonnel->sortBy('distance');
-            }
 
             return response()->json([
                 'success' => true,

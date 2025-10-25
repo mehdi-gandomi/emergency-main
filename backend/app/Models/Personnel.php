@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -61,5 +61,36 @@ class Personnel extends Model
     public function statusRecords(): HasMany
     {
         return $this->hasMany(RecordPersonsStatus::class, 'personnel_id', 'id');
+    }
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class, 'city_id', 'id');
+    }
+     public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_id', 'id');
+    }
+    public function town(): BelongsTo
+    {
+        return $this->belongsTo(Town::class, 'town_id', 'id');
+    }
+        public function village(): BelongsTo
+    {
+        return $this->belongsTo(Village::class, 'village_id', 'id');
+    }
+    public function profileUpload()
+{
+    return $this->hasOneThrough(
+        MemberUpload::class,     // Final related model
+        MemberPersonnel::class,  // Intermediate model
+        'personnel_id',          // Foreign key on member_personnel table
+        'member_id',             // Foreign key on member_upload table
+        'id',                    // Local key on personnel table
+        'member_id'              // Local key on member_personnel table
+    )->where("member_upload.type",26);
+}
+public function personnel_mobile()
+    {
+        return $this->hasOne(PersonnelPhone::class, 'personnel_id', 'id')->where("phone_id",3);
     }
 }

@@ -171,7 +171,7 @@ export const EmergencyDashboard = () => {
     (async () => {
       try {
         const me = await api.get('/user');
-        try { localStorage.setItem('user', JSON.stringify(me)); } catch {}
+        try { localStorage.setItem('user', JSON.stringify(me.data)); } catch {}
       } catch (e) {
         // token invalid -> redirect to login
         // window.location.href = '/login';

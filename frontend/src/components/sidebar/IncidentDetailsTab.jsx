@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, MapPin, Clock, User, Car, Phone, Calendar, Home, Building, Users, Info, FileText, AlertCircle, Clipboard, Handshake, FileCheck } from 'lucide-react';
+import { AlertTriangle, MapPin, Clock, User, Car, Phone, Calendar, Home, Building, Users, Info, FileText, AlertCircle, Clipboard, Handshake, FileCheck, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { Button } from "@/components/ui/button";
+import IncidentDetailsModal from '@/components/modals/IncidentDetailsModal';
 
 const getPriorityLabel = (priority) => ({ low: 'کم', medium: 'متوسط', high: 'بالا', critical: 'بحرانی' }[priority] || priority);
 const getStatusLabel = (status) => ({ pending: 'در انتظار', in_progress: 'در حال پردازش', assigned: 'ارجاع شده' }[status] || status);
@@ -17,9 +19,20 @@ const DetailItem = ({ label, value, children, badgeColor }) => (
     </div>
 );
 
-export default function IncidentDetailsTab({ incident }) {
+export default function IncidentDetailsTab({ incident, onOpenDetailsModal }) {
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  
   if (!incident) {
     return <div className="p-4 text-center text-gray-500">اطلاعات حادثه در دسترس نیست</div>;
+  }
+  
+  // Use the parent component's modal if provided
+  const handleOpenModal = () => {
+    if (onOpenDetailsModal) {
+      onOpenDetailsModal();
+    } else {
+      setShowDetailsModal(true);
+    }
   }
 
   const { 
@@ -145,15 +158,35 @@ export default function IncidentDetailsTab({ incident }) {
     return Math.round((Math.random() * 20) + 25); // Fallback to a reasonable range
   };
 
+  // Modal has been moved to a separate component
+
   return (
     <div className="p-4 space-y-4" dir="rtl">
-        <div className="flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
-            <div>
-                <h3 className="text-lg font-bold">جزئیات حادثه</h3>
-                <p className="text-sm text-gray-500">شناسه: {incident_id}</p>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div>
+                    <h3 className="text-lg font-bold">جزئیات حادثه</h3>
+                    <p className="text-sm text-gray-500">شناسه: {incident_id}</p>
+                </div>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleOpenModal}
+              className="flex items-center gap-1"
+            >
+              <FileText className="w-4 h-4" />
+              جزئیات تکمیلی
+            </Button>
         </div>
+        
+        {/* Use the extracted modal component */}
+        <IncidentDetailsModal 
+          isOpen={showDetailsModal} 
+          onClose={() => setShowDetailsModal(false)} 
+          incident={incident} 
+        />
 
         <Card>
             <CardHeader className="pb-2">
@@ -206,23 +239,7 @@ export default function IncidentDetailsTab({ incident }) {
                 {details.town && <DetailItem label="شهر" value={details.town.title} />}
                 {details.village && <DetailItem label="روستا" value={details.village.title} />}
                 {address && <DetailItem label="آدرس کامل" value={address} />}
-                {incident_source_location && <DetailItem label="موقعیت منبع اعلام حادثه" value={incident_source_location} />}
-                {height && <DetailItem label="ارتفاع" value={height} />}
-                {width && <DetailItem label="عرض" value={width} />}
-                {length && <DetailItem label="طول" value={length} />}
-                {event_environment && <DetailItem label="نوع محیط حادثه" value={event_environment} />}
-                {event_environment_name && <DetailItem label="نام محیط حادثه" value={event_environment_name} />}
-                {type_mountain && <DetailItem label="نوع کوه" value={type_mountain} />}
-                {climb_route && <DetailItem label="مسیر صعود" value={climb_route} />}
-                {climb_route_direction && <DetailItem label="جهت مسیر صعود" value={climb_route_direction} />}
-                {event_place && <DetailItem label="مکان حادثه" value={event_place} />}
-                {event_place_name && <DetailItem label="نام مکان حادثه" value={event_place_name} />}
-                {axis_name && <DetailItem label="نام محور" value={axis_name} />}
-                {km_axis && <DetailItem label="کیلومتر محور" value={km_axis} />}
-                {nech_name && <DetailItem label="نام نچ" value={nech_name} />}
-                {parish_name && <DetailItem label="نام محله" value={parish_name} />}
-                {plaque && <DetailItem label="پلاک" value={plaque} />}
-                {fgh_name && <DetailItem label="نام فقه" value={fgh_name} />}
+                
             </CardContent>
         </Card>
         
@@ -264,101 +281,6 @@ export default function IncidentDetailsTab({ incident }) {
             </CardContent>
         </Card>
 
-
-        {/* Casualties and Vehicles */}
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Users className="w-4 h-4"/>
-                    جزئیات تکمیلی
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <DetailItem label="تعداد مصدومان" value={injured_num || casualties || 0} />
-                <DetailItem label="تعداد افراد درگیر" value={event_people_num || 0} />
-                <DetailItem label="تعداد خودروها" value={car_num || 0} />
-                {number_of_trapped && <DetailItem label="تعداد محبوسین" value={number_of_trapped} />}
-                {prisoners_num && <DetailItem label="تعداد محبوسین" value={prisoners_num} />}
-                {number_of_houses && <DetailItem label="تعداد منازل درگیر" value={number_of_houses} />}
-                {caught_homes_num && <DetailItem label="تعداد منازل درگیر" value={caught_homes_num} />}
-                {feet_num && <DetailItem label="تعداد فوتی" value={feet_num} />}
-                {healthy_people_num && <DetailItem label="تعداد افراد سالم" value={healthy_people_num} />}
-                {caught_in_snow_flood_num && <DetailItem label="تعداد گرفتار در برف و سیل" value={caught_in_snow_flood_num} />}
-                {trauma_type && <DetailItem label="نوع تروما" value={trauma_type} />}
-                {trauma_member && <DetailItem label="عضو دچار تروما شده" value={trauma_member} />}
-                {ratio && <DetailItem label="نسبت" value={ratio} />}
-                {vehicles_involved?.length > 0 && 
-                  <DetailItem label="وسیله درگیر" value={vehicles_involved.join(', ')} />
-                }
-                {victims_list && victims_list.length > 0 && 
-                  <DetailItem label="لیست قربانیان" value={Array.isArray(victims_list) ? victims_list.join(', ') : victims_list} />
-                }
-            </CardContent>
-        </Card>
-
-        {/* Mission Details */}
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <FileCheck className="w-4 h-4"/>
-                    جزئیات ماموریت
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                {mission_notes && <DetailItem label="ملاحظات ماموریت" value={mission_notes} />}
-                {mission_result && <DetailItem label="نتیجه ماموریت" value={mission_result} />}
-                {mission_cancel_reason && <DetailItem label="دلیل لغو ماموریت" value={mission_cancel_reason} />}
-                {cancel_source && <DetailItem label="منبع لغو" value={cancel_source} />}
-                {cancel_phone_number && <DetailItem label="شماره تماس لغو" value={cancel_phone_number} />}
-                {cancel_public_source && <DetailItem label="منبع مردمی لغو" value={cancel_public_source} />}
-                {cancel_relative_type && <DetailItem label="نوع خویشاوندی لغو" value={cancel_relative_type} />}
-                {cancel_organizational_source && cancel_organizational_source.length > 0 && (
-                    <DetailItem label="منبع سازمانی لغو" value={Array.isArray(cancel_organizational_source) ? cancel_organizational_source.join(', ') : cancel_organizational_source} />
-                )}
-                {cancel_organizational_type && <DetailItem label="نوع سازمانی لغو" value={cancel_organizational_type} />}
-                {mission_types && mission_types.length > 0 && (
-                    <DetailItem label="انواع ماموریت" value={Array.isArray(mission_types) ? mission_types.join(', ') : mission_types} />
-                )}
-                {operational_teams && operational_teams.length > 0 && (
-                    <DetailItem label="تیم‌های عملیاتی" value={Array.isArray(operational_teams) ? operational_teams.join(', ') : operational_teams} />
-                )}
-                {required_vehicles && required_vehicles.length > 0 && (
-                    <DetailItem label="وسایل نقلیه مورد نیاز" value={Array.isArray(required_vehicles) ? required_vehicles.join(', ') : required_vehicles} />
-                )}
-                {needs_other_provinces !== undefined && (
-                    <DetailItem label="نیاز به استان‌های دیگر" value={needs_other_provinces ? 'بله' : 'خیر'} />
-                )}
-                {event_repetitive_id > 0 && <DetailItem label="شناسه رویداد تکراری" value={event_repetitive_id} />}
-                {event_follow_id && <DetailItem label="شناسه پیگیری رویداد" value={event_follow_id} />}
-            </CardContent>
-        </Card>
-
-        {/* Additional Information */}
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Info className="w-4 h-4"/>
-                    اطلاعات تکمیلی
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                
-                {main_complaint && <DetailItem label="شکایت اصلی" value={main_complaint} />}
-                {nuisance_type && <DetailItem label="نوع مزاحمت" value={nuisance_type} />}
-                {cooperating_organizations && (
-                    <DetailItem label="ارگانهای همکار" value={typeof cooperating_organizations === 'string' ? cooperating_organizations : cooperating_organizations.join(', ')} />
-                )}
-                {organizations_in_place && (
-                    <DetailItem label="سازمان‌های حاضر در محل" value={typeof organizations_in_place === 'string' ? organizations_in_place : organizations_in_place.join(', ')} />
-                )}
-                {organizations_in_place_detail && organizations_in_place_detail.length > 0 && (
-                    <DetailItem label="جزئیات سازمان‌های حاضر در محل" value={Array.isArray(organizations_in_place_detail) ? organizations_in_place_detail.join(', ') : JSON.stringify(organizations_in_place_detail)} />
-                )}
-                {created_personnel_id && <DetailItem label="شناسه پرسنل ایجاد کننده" value={created_personnel_id} />}
-                {user_date && <DetailItem label="تاریخ کاربر" value={user_date} />}
-                {user_time && <DetailItem label="زمان کاربر" value={user_time} />}
-            </CardContent>
-        </Card>
     </div>
   );
 }

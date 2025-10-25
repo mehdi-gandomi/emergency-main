@@ -81,7 +81,7 @@ const MapToolbar = ({ activeTool, onToolChange }) => {
     
     if (!isOpen) {
         return (
-            <Card className="absolute top-24 left-4 z-1000 p-0 bg-white/90 backdrop-blur-sm shadow-lg">
+            <Card className="absolute top-24 left-4 z-50 p-0 bg-white/90 backdrop-blur-sm shadow-lg">
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="w-10 h-10">
                     <PenSquare className="w-5 h-5 text-gray-600" />
                 </Button>
@@ -90,7 +90,7 @@ const MapToolbar = ({ activeTool, onToolChange }) => {
     }
 
     return (
-        <Card className="absolute top-24 left-4 z-1000 p-0 flex flex-col gap-1 bg-white/90 backdrop-blur-sm shadow-lg">
+        <Card className="absolute top-24 left-4 z-50 p-0 flex flex-col gap-1 bg-white/90 backdrop-blur-sm shadow-lg">
             <div className="flex items-center p-1.5 cursor-pointer" onClick={() => setIsOpen(false)}>
                 <PenSquare className="w-5 h-5 mr-2 text-gray-600"/>
                 <h4 className="font-semibold text-sm flex-1">ابزارها</h4>
@@ -121,7 +121,7 @@ const MapLegend = () => {
 
     if (!isOpen) {
         return (
-            <Card className="absolute bottom-4 right-4 z-1000 p-0 bg-white/90 backdrop-blur-sm shadow-lg">
+            <Card className="absolute bottom-4 right-4 z-50 p-0 bg-white/90 backdrop-blur-sm shadow-lg">
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="w-10 h-10">
                     <HelpCircle className="w-5 h-5 text-gray-600" />
                 </Button>
@@ -130,7 +130,7 @@ const MapLegend = () => {
     }
 
     return (
-        <Card className="absolute bottom-4 right-4 z-1000 p-0 bg-white/90 backdrop-blur-sm shadow-lg w-48" dir="rtl">
+        <Card className="absolute bottom-4 right-4 z-50 p-0 bg-white/90 backdrop-blur-sm shadow-lg w-48" dir="rtl">
             <div className="flex items-center p-1.5 cursor-pointer" onClick={() => setIsOpen(false)}>
                 <HelpCircle className="w-5 h-5 ml-2 text-gray-600"/>
                 <h4 className="font-bold text-sm flex-1">راهنمای نقشه</h4>

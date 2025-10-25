@@ -17,9 +17,17 @@ const queryClient = new QueryClient();
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  // if (!token) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (token) {
+    return <Navigate to="/dispatch" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -31,7 +39,7 @@ const App = () => (
       {/* Connection status indicator moved into header */}
       <BrowserRouter basename="/">
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
           <Route path="/dispatch" element={<RequireAuth><Index /></RequireAuth>} />
           <Route path="/events" element={<RequireAuth><Events /></RequireAuth>} />
           <Route path="/events/:id" element={<RequireAuth><EventDetails /></RequireAuth>} />
@@ -39,7 +47,8 @@ const App = () => (
           <Route path="/queue" element={<RequireAuth><CallQueueMonitoring /></RequireAuth>} />
           <Route path="/history" element={<RequireAuth><CallHistory /></RequireAuth>} />
           <Route path="/logs" element={<RequireAuth><CallLogger /></RequireAuth>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<RequireAuth><Navigate to="/dispatch" replace /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

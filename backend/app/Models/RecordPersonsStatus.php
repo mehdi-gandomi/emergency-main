@@ -52,4 +52,9 @@ class RecordPersonsStatus extends Model
     {
         return $this->belongsTo(Personnel::class, 'personnel_id', 'id');
     }
+  
+    public function personnel_mobile()
+    {
+        return $this->hasOne(PersonnelPhone::class, 'personnel_id', 'personnel_id')->where("phone_id",3);
+    }
 }

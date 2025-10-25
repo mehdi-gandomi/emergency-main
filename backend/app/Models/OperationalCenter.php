@@ -116,7 +116,7 @@ class OperationalCenter extends Model
         return $this->belongsTo(Province::class, 'province_id', 'id');
     }
 
-    public function branch(): BelongsTo
+    public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'branches_id', 'id');
     }

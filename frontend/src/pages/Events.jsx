@@ -341,7 +341,7 @@ export default function IncidentsListPage() {
       
       // Use the API service to fetch events
       const params = new URLSearchParams(apiFilters);
-      const response = await api.get(`/contact-events?${params.toString()}`);
+      const response = await api.get(`/initial-reports?${params.toString()}`);
       setIncidents(response.data || []);
       
       // Set filtered incidents directly from API response
@@ -557,7 +557,7 @@ export default function IncidentsListPage() {
                           {incident.location?.province || '-'}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-900">
-                          {incident.operator_name || incident.user_name || 'نامشخص'}
+                          {incident.operator_name  || 'نامشخص'}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-900">
                           

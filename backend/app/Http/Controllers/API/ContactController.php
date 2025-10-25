@@ -13,7 +13,8 @@ use App\Enums\Contact\ReportEvent;
 use App\Enums\Contact\Device;
 use App\Enums\Contact\EventDetailsStatus;
 use App\Enums\Contact\AlarmStatus;
-
+use App\Models\InitialReportDetail;
+use App\Models\InitialReport;
 class ContactController extends Controller
 {
     public function index(Request $request)
@@ -221,14 +222,27 @@ class ContactController extends Controller
 
             $detailsData['contact_id'] = $contact->id;
 
-            ContactDetail::create($detailsData);
+            $detailsData=ContactDetail::create($detailsData);
+        }
+        $initialReport=null;
+        if(in_array($contact->type_call,[4,5]) ){
+            $data=$contact->toArray();
+            unset($data['id']);
+            $data['contact_id']=$contact->id;
+            $initialReport=InitialReport::create($data);
+
+            $details=$detailsData->toArray();
+            unset($details['contact_id']);
+            $initialReport->details()->create($details);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Contact created successfully',
-            'data' => ['contact_id' => $contact->id],
-            'contact' => $contact->load('details')
+            'data' => [
+                'contact'=>$contact->load('details'),
+                'initial_report'=>$initialReport ? $initialReport->load('details'):null
+            ],
         ], 201, [], JSON_UNESCAPED_UNICODE);
     }
 

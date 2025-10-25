@@ -22,6 +22,7 @@ type FetchOptions = {
 const request = async <T>(path: string, options: FetchOptions = {}): Promise<T> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...(options.headers || {}),
   };
   if (authToken) {
@@ -35,6 +36,15 @@ const request = async <T>(path: string, options: FetchOptions = {}): Promise<T> 
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized errors by redirecting to login page
+    if (res.status === 401) {
+      // Clear token
+      setToken(null);
+      // Redirect to login page
+      window.location.href = '/login';
+      throw new Error('Unauthorized: Redirecting to login page');
+    }
+    
     const text = await res.text();
     throw new Error(text || `Request failed with status ${res.status}`);
   }

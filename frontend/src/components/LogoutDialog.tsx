@@ -17,52 +17,54 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { logout } from '../services/authService';
+import { LogoutReasonType, LogoutReasonData, LogoutReasonPayload } from '../types/LogoutReason';
 
 interface LogoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onLogout: (reason: LogoutReason) => void;
+  onLogout?: (reason: LogoutReasonPayload) => void;
 }
 
-interface LogoutReason {
-  type: 'break' | 'leave' | 'technical' | 'emergency' | 'other';
+interface LogoutReasonData {
+  value: LogoutReasonType;
+  label: string;
   description: string;
-  duration?: number; // in minutes
-  supervisorApproval?: boolean;
-  smsSent?: boolean;
+  requiresApproval: boolean;
+  maxDuration: number;
 }
 
-const logoutReasons = [
+const logoutReasons: LogoutReasonData[] = [
   {
-    value: 'break',
+    value: LogoutReasonType.BREAK,
     label: 'استراحت کوتاه',
     description: 'استراحت کوتاه (کمتر از 30 دقیقه)',
     requiresApproval: false,
     maxDuration: 30
   },
   {
-    value: 'leave',
+    value: LogoutReasonType.LEAVE,
     label: 'مرخصی',
     description: 'مرخصی رسمی (نیاز به تایید کارشناس مسئول)',
     requiresApproval: true,
     maxDuration: 480 // 8 hours
   },
   {
-    value: 'technical',
+    value: LogoutReasonType.TECHNICAL,
     label: 'مشکل فنی',
     description: 'حل مشکل فنی سیستم',
     requiresApproval: false,
     maxDuration: 60
   },
   {
-    value: 'emergency',
+    value: LogoutReasonType.EMERGENCY,
     label: 'وضعیت اضطراری شخصی',
     description: 'وضعیت اضطراری شخصی',
     requiresApproval: false,
     maxDuration: 120
   },
   {
-    value: 'other',
+    value: LogoutReasonType.OTHER,
     label: 'سایر موارد',
     description: 'سایر موارد (لطفاً توضیح دهید)',
     requiresApproval: false,
@@ -82,8 +84,36 @@ export const LogoutDialog = ({ open, onOpenChange, onLogout }: LogoutDialogProps
 
   const handleSubmit = async () => {
     if (!selectedReason) return;
-
+    
     setIsSubmitting(true);
+    
+    try {
+      const logoutData: LogoutReasonPayload = {
+        reason: selectedReason as LogoutReasonType,
+        description,
+        duration,
+        supervisorApproval,
+        smsSent: smsNotification
+      };
+      
+      // Call the logout API
+      await logout(logoutData);
+      
+      // Call the onLogout callback if provided
+      if (onLogout) {
+        onLogout(logoutData);
+      }
+      
+      // Close the dialog
+      onOpenChange(false);
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     // Simulate SMS sending
     if (smsNotification) {
@@ -96,7 +126,7 @@ export const LogoutDialog = ({ open, onOpenChange, onLogout }: LogoutDialogProps
     }
 
     const logoutReason: LogoutReason = {
-      type: selectedReason as any,
+      reason: selectedReason as any,
       description: description || selectedReasonData?.description || '',
       duration,
       supervisorApproval: selectedReasonData?.requiresApproval ? true : false,

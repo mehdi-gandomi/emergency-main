@@ -15,7 +15,7 @@ class OperationalCenterController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = OperationalCenter::with(['province', 'branch']);
+            $query = OperationalCenter::with(['province', 'city']);
             
             // Filter by province if provided
             if ($request->has('province_id')) {
@@ -39,25 +39,33 @@ class OperationalCenterController extends Controller
                 $query->where('status', $status);
             }
 
-            // Filter by location radius if provided
-            if ($request->has(['lat', 'lon', 'radius'])) {
+            // Add distance calculation if lat and lon are provided
+            if ($request->has(['lat', 'lon'])) {
                 $lat = $request->lat;
                 $lon = $request->lon;
-                $radius = $request->radius; // in kilometers
-
-                // Using Haversine formula for distance calculation
-                $query->whereRaw("
-                    (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) <= ?
-                ", [$lat, $lon, $lat, $radius]);
+                
+                // Add distance calculation using Haversine formula
+                $query->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) as distance", [$lat, $lon, $lat]);
+                
                 // Filter out null coordinates
                 $query->whereNotNull('lat')->whereNotNull('lon');
+                
+                // Filter by radius if provided
+                if ($request->has('radius')) {
+                    $radius = $request->radius; // in kilometers
+                    $query->whereRaw("(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) <= ?", 
+                        [$lat, $lon, $lat, $radius]);
+                }
+                
+                // Sort by distance (closest first)
+                $query->orderBy('distance', 'asc');
             }
 
             $centers = $query->limit(100)->get();
-
+            
             // Transform data for frontend
             $transformedCenters = $centers->map(function ($center) {
-                return [
+                $data = [
                     'id' => $center->id,
                     'operational_code' => $center->coding ?? $center->three_digit_code,
                     'name' => $center->title,
@@ -85,9 +93,9 @@ class OperationalCenterController extends Controller
                         'satellite_phone' => $center->satellite_phone,
                     ],
                     'address' => $center->address,
-                    'province' => $center->province?->name,
+                    'province' => $center->province?->title,
+                    'city' => $center->city?->title,
                     'province_id' => $center->province_id,
-                    'branch' => $center->branch?->name,
                     'branch_id' => $center->branches_id,
                     'type_operational_center' => $center->type_operational_center,
                     'account_type' => $center->account_type,
@@ -107,6 +115,13 @@ class OperationalCenterController extends Controller
                     'arena' => $center->arena,
                     'description' => $center->description,
                 ];
+                
+                // Add distance if it was calculated
+                if (isset($center->distance)) {
+                    $data['distance'] = round($center->distance, 2); // Round to 2 decimal places
+                }
+                
+                return $data;
             });
 
             return response()->json([

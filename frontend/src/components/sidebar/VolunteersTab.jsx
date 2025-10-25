@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Users, Phone, MessageSquare, Clock, MessageCircle, Star } from 'lucide-react';
+import { Users, Phone, MessageSquare, Clock, MessageCircle, Star, MapPin, PhoneCall } from 'lucide-react';
 
 const getRankLabel = (rank) => ({ 
   rescue_assistant: 'امدادیار', 
@@ -41,7 +41,7 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
     const teamMatch = teamFilter === 'all' || v.team === teamFilter;
     return rankMatch && teamMatch && v.status === 'available';
   });
-
+  console.log(filteredVolunteers)
   return (
     <div className="h-full flex flex-col p-4 space-y-4" dir="rtl">
         <div className="grid grid-cols-2 gap-2">
@@ -73,17 +73,17 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
                 <Users className="w-6 h-6 text-white"/>
             </div>
             <div>
-                <h3 className="font-bold text-green-800">داوطلبان آماده</h3>
+                <h3 className="font-bold text-green-800">داوطلبان آماده به کار</h3>
                 <p className="text-sm text-green-600">امدادگران هلال احمر</p>
             </div>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3">
-            {filteredVolunteers.map(volunteer => {
+            {filteredVolunteers.map((volunteer,key) => {
                 const isSelected = selectedVolunteers.includes(volunteer.id);
                 return (
                     <Card 
-                      key={volunteer.id} 
+                      key={key} 
                       className="p-3 bg-white border border-gray-200 hover:shadow-sm transition-all"
                     >
                         <div className="space-y-2">
@@ -102,9 +102,9 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
                                 </Avatar>
                                 <div className="flex-1">
                                     <h4 className="font-bold text-base">{volunteer.full_name}</h4>
-                                    <Badge className="bg-green-100 text-green-700 border-green-300 text-xs px-2 py-0.5">
-                                        {getRankLabel(volunteer.rank)}
-                                    </Badge>
+                                    <span className="bg-green-100 text-green-700 border-green-300 text-xs px-2 py-0.5">
+                                        جنسیت: {volunteer.sex === 0 ? 'زن' : 'مرد'}
+                                    </span>
                                 </div>
                                 <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-700">
                                     آماده
@@ -116,7 +116,23 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
                                 <p>تیم: {volunteer.team}</p>
                                 <div className="flex items-center gap-1">
                                     <Clock className="w-3.5 h-3.5" />
-                                    <span>ETA: {calculateETA(volunteer.location, incidentLocation)} دقیقه</span>
+                                    <span>آخرین بروزرسانی وضعیت: {volunteer.last_update} </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    <span>{volunteer.city?.province?.title},{volunteer.town?.title},{volunteer.city?.title}</span>
+                                </div>
+                                {volunteer.distance !== null && volunteer.distance !== undefined && (
+                                    <div className="flex items-center gap-1">
+                                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                                        <span>فاصله: {(volunteer.distance).toFixed(2)} کیلومتر</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                    <a href={`tel:${volunteer.personnel_mobile}`} className="text-gray-600 flex gap-1 hover:underline">
+                                        <PhoneCall className="w-3.5 h-3.5" />
+                                        {volunteer.personnel_mobile}
+                                    </a>
                                 </div>
                             </div>
                             
@@ -128,7 +144,7 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
                             </div>
 
                             {/* Communication buttons */}
-                            <div className="flex justify-between items-center mr-14 pt-2 border-t mt-2">
+                            {/* <div className="flex justify-between items-center mr-14 pt-2 border-t mt-2">
                                 <div className="flex gap-2">
                                     <Button size="icon" className="w-7 h-7 bg-green-500 hover:bg-green-600"><Phone className="w-4 h-4" /></Button>
                                     <Button size="icon" className="w-7 h-7 bg-blue-500 hover:bg-blue-600"><MessageSquare className="w-4 h-4" /></Button>
@@ -140,7 +156,7 @@ export default function VolunteersTab({ volunteers, selectedVolunteers, onSelect
                                         <Star className="w-3.5 h-3.5 fill-current" />
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
 
                             {/* Mission button - only show for selected volunteers */}
                             {isSelected && (

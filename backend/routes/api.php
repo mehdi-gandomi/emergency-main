@@ -17,16 +17,26 @@ use App\Http\Controllers\API\TownController;
 use App\Http\Controllers\API\VillageController;
 use App\Http\Controllers\API\EventController;
 use App\Http\Controllers\API\RecordPersonsStatusController;
+use App\Http\Controllers\API\SendDispatchNotificationMissionController;
 
 Route::get('/contact-events', [EventController::class, 'contactEvents']);
+Route::get('/initial-reports', [EventController::class, 'initialReports']);
+Route::get('/initial-reports/{id}', [EventController::class, 'initialReportsShow']);
 Route::get('/contact-events/{id}', [EventController::class, 'contactEventsShow']);
 
 // Personnel Status routes
 Route::get('/active-personnel', [RecordPersonsStatusController::class, 'getActivePersonnelByLocation']);
 
+// Dispatch Notification routes
+Route::post('/dispatch/send-notification', [SendDispatchNotificationMissionController::class, 'sendDispatchNotification']);
+Route::get('/dispatch/status/{missionId}', [SendDispatchNotificationMissionController::class, 'getDispatchStatus']);
+Route::post('/dispatch/update-status', [SendDispatchNotificationMissionController::class, 'updateNotificationStatus']);
+
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/verify-personnel', [AuthController::class, 'verifyPersonnel']);
+Route::post('/logout', [\App\Http\Controllers\Auth\LogoutController::class, 'logout'])->middleware('auth:sanctum');
 Route::apiResource('contacts', ContactController::class);
 
 
@@ -90,7 +100,18 @@ Route::apiResource('towns', TownController::class);
 Route::apiResource('villages', VillageController::class);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        $data=$request->user()->load('personnel','personnel.profileUpload','personnel.personnel_mobile');
+        $data=$data ? $data->toArray():[];
+        if(isset($data['personnel']) && isset($data['personnel']['profile_upload'])){
+            $data['avatar']="http://raromis.ir/upload/members/personal_img/".$data['personnel']['profile_upload']['file'];
+        }
+        if(isset($data['personnel']) && isset($data['personnel']['personnel_mobile'])){
+            $data['mobile']=$data['personnel']['personnel_mobile']['phone'];
+        }
+        return [
+            'status'=>'success',
+            'data'=>$data
+        ];
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -152,7 +152,7 @@ const eventService = {
   getEventById: async (id: string): Promise<EventDetails> => {
     try {
       // First try to get from the new events endpoint
-      const response = await fetch(`${API_BASE_URL}/contact-events/${id}`);
+      const response = await fetch(`${API_BASE_URL}/initial-reports/${id}`);
       
       const contactData = await response.json();
       return transformContactToEvent(contactData.data || contactData);

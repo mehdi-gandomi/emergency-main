@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Operator extends Model
 {
-    protected $table = 'operators';
+    protected $table = 'operator';
     public $timestamps = false;
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'int';
+
 
     protected $fillable = [
         'id',             // کد
@@ -41,6 +39,10 @@ class Operator extends Model
     public function province(): BelongsTo
     {
         return $this->belongsTo(Province::class, 'province_id', 'id');
+    }
+    public function personnel(): BelongsTo
+    {
+        return $this->belongsTo(Personnel::class, 'personnel_id', 'id');
     }
 
     public function city(): BelongsTo

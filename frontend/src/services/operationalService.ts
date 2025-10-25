@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL ='http://localhost:8000/api';
 
 export interface Location {
   latitude: number;
@@ -30,7 +30,7 @@ export interface OperationalCenter {
   contact_info: ContactInfo;
   address?: string;
   province?: string;
-  branch?: string;
+  city?: string;
   description?: string;
 }
 

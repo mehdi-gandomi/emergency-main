@@ -16,7 +16,8 @@ import {
   Clock,
   Map,
   Plus,
-  Minus
+  Minus,
+  FileText
 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { faIR } from 'date-fns/locale';
@@ -27,6 +28,7 @@ import VolunteersTab from '@/components/sidebar/VolunteersTab';
 import IncidentDetailsTab from '@/components/sidebar/IncidentDetailsTab';
 import RedCrescentHousesTab from '@/components/sidebar/RedCrescentHousesTab';
 import DispatchModal from '@/components/modals/DispatchModal';
+import IncidentDetailsModal from '@/components/modals/IncidentDetailsModal';
 
 const TopBarTimer = ({ startTime, label }) => {
   const [elapsed, setElapsed] = useState('');
@@ -79,6 +81,7 @@ export default function IncidentDispatchPage() {
   const [selectedBases, setSelectedBases] = useState([]);
   const [selectedVolunteers, setSelectedVolunteers] = useState([]);
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   
   // Load event data from API
   useEffect(() => {
@@ -86,6 +89,7 @@ export default function IncidentDispatchPage() {
       try {
         const eventId = id; // Fallback ID if not provided
         const eventData = await eventService.getEventById(eventId);
+        
         setIncident(eventData);
         
         // After getting incident data with location, load operational resources
@@ -102,12 +106,14 @@ export default function IncidentDispatchPage() {
   
   // Reload operational data when radius changes
   useEffect(() => {
-    if (incident?.eventLocation) {
+    if (incident && incident.eventLocation) {
+      
       loadBasesAndVolunteers(incident.eventLocation);
     }
-  }, [operationalRadius]);
+  }, [operationalRadius,incident]);
 
   const loadBasesAndVolunteers = async (eventLocation = null) => {
+    if(!incident.date_call) return;
     setLoading(true);
     try {
       const location = eventLocation || incident?.eventLocation;
@@ -136,17 +142,15 @@ export default function IncidentDispatchPage() {
   
       // Load active personnel from API
       // Format the date as YYYY-MM-DD
-      const eventDate = incident?.time_reported 
-        ? new Date(incident.time_reported).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
-      
+      const eventDate = incident?.date_call;
+      console.log(incident)
       const personnelData = await personnelService.getActivePersonnel({
         lat: location.latitude,
         lon: location.longitude,
         radius: operationalRadius,
         date: eventDate
       });
-      
+      console.log(personnelData)
       setBases(basesData);
       setHouses(housesData);
       setVolunteers(personnelData);
@@ -231,7 +235,12 @@ export default function IncidentDispatchPage() {
               <TabsTrigger value="houses" className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-red-600 rounded-lg">خانه‌های هلال</TabsTrigger>
             </TabsList>
             <div className="flex-1 overflow-y-auto">
-              <TabsContent value="details" className="m-0"><IncidentDetailsTab incident={incident} /></TabsContent>
+              <TabsContent value="details" className="m-0">
+            <IncidentDetailsTab 
+              incident={incident} 
+              onOpenDetailsModal={() => setIsDetailsModalOpen(true)} 
+            />
+          </TabsContent>
               <TabsContent value="volunteers" className="m-0">
                 <VolunteersTab 
                   volunteers={volunteers} 
@@ -296,8 +305,16 @@ export default function IncidentDispatchPage() {
         onDispatch={handleDispatch}
         selectedBases={bases.filter(b => selectedBases.includes(b.id))}
         selectedVolunteers={volunteers.filter(v => selectedVolunteers.includes(v.id))}
-        selectedHouses={houses.filter(h => selectedHouses.includes(h.id))}
+        selectedRedCrescentHouses={houses.filter(h => selectedHouses.includes(h.id))}
         incidentLocation={incident?.eventLocation}
+        incident={incident}
+      />
+      
+      {/* Incident Details Modal */}
+      <IncidentDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        incident={incident}
       />
     </div>
   );
