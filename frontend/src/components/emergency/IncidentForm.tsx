@@ -587,7 +587,7 @@ export const IncidentForm = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Users className="h-5 w-5" />
-                          اطلاعات آماری حادثه و تروما
+                          اطلاعات آماری حادثه
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -685,25 +685,24 @@ export const IncidentForm = () => {
                           
                           {/* نوع تروما یا مصدومیت */}
                           <div className="space-y-2">
-                            <Label htmlFor="trauma_type">نوع تروما یا مصدومیت</Label>
+                            <Label htmlFor="trauma_type">نوع مصدومیت</Label>
                             <Input
                               id="trauma_type"
                               name="trauma_type"
                               value={formData.trauma_type || ""}
                               onChange={handleInputChange}
-                              placeholder="نوع تروما یا مصدومیت"
                             />
                           </div>
                           
                           {/* عضو دچار تروما شده */}
                           <div className="space-y-2">
-                            <Label htmlFor="trauma_member">عضو دچار تروما شده</Label>
+                            <Label htmlFor="trauma_member">عضو دچار حادثه</Label>
                             <Input
                               id="trauma_member"
                               name="trauma_member"
                               value={formData.trauma_member || ""}
                               onChange={handleInputChange}
-                              placeholder="عضو دچار تروما شده"
+                            
                             />
                           </div>
                         </div>
