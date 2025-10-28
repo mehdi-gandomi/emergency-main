@@ -221,34 +221,7 @@ export const IncidentDetailsSection = ({
           )}
         </div>
 
-        {/* زمان وقوع حادثه */}
-        <div className="space-y-2">
-          <Label htmlFor="timeOfIncident" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>زمان وقوع حادثه</span>
-            <Clock className="h-4 w-4" />
-          </Label>
-          <DatePicker
-            calendar={persian}
-            locale={persian_fa}
-            plugins={[<TimePicker position="bottom" />]}
-            format="YYYY/MM/DD HH:mm:ss"
-            placeholder="انتخاب تاریخ و زمان وقوع حادثه"
-            value={formData.time_of_incident}
-            onChange={(value) => onInputChange('time_of_incident', value?.toString() || '')}
-            style={{
-              width: "100%",
-              height: "40px",
-              padding: "8px 12px",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              fontSize: "14px",
-              direction: "rtl"
-            }}
-            containerStyle={{
-              width: "100%"
-            }}
-          />
-        </div>
+      
       </div>
 
       {/* Incident Type Specific Fields */}

@@ -47,7 +47,7 @@ const ORGANIZATIONAL_OPTIONS = [
   { value: "عوامل ستادی و شعب", label: "🏢 عوامل ستادی و شعب", type: "درون جمعیت" },
   { value: "EOC استان معین", label: "🏢 EOC استان معین", type: "درون جمعیت" },
   { value: "سازمان امداد و نجات", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
-  
+
   // برون جمعیت  
   { value: "اورژانس", label: "🚑 اورژانس", type: "برون جمعیت" },
   { value: "آتش نشانی", label: "🔥 آتش نشانی", type: "برون جمعیت" },
@@ -76,7 +76,7 @@ export const IncidentForm = () => {
     type_report: "1",
     report_event: 58,
     device: "",
-    event_repetitive_id:0,
+    event_repetitive_id: 0,
     organizations_in_place: [],
     event_details: "",
     cc: "",
@@ -102,7 +102,7 @@ export const IncidentForm = () => {
     contact_type: "",
     call_time_info: "",
     incident_source_location: "",  // Will be populated with IncidentSourceLocation enum values
-    
+
     // Fields from contact_details table
     lon: "",
     lat: "",
@@ -144,7 +144,7 @@ export const IncidentForm = () => {
     main_complaint: "",
     cooperating_organizations: "",
 
-  
+
     follow_up_type: "",
     trapped_in_flood_snow_num: "",
     event_people_num: "",
@@ -176,6 +176,47 @@ export const IncidentForm = () => {
   const [amlLocation, setAmlLocation] = useState(true);
 
   const [shouldFlyToMarker, setShouldFlyToMarker] = useState(false);
+  type CountField = 'injured_num' | 'feet_num' | 'prisoners_num' | 'caught_in_snow_flood_num' | 'car_num';
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CountField, string>>>({});
+  const [hasInjured, setHasInjured] = useState<'yes' | 'no' | ''>('');
+  // Validate numeric fields against event_people_num and show inline errors
+  const handleNumericMaxChange = (field: CountField, e: React.ChangeEvent<HTMLInputElement>) => {
+    const max = parseInt(formData.event_people_num || "0", 10) || 0;
+    const raw = e.target.value;
+    if (!/^\d*$/.test(raw)) return; // defense in depth
+
+    setFormData({ ...formData, [field]: raw });
+
+    const num = raw === '' ? 0 : parseInt(raw, 10) || 0;
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (max > 0 && num > max) {
+        next[field] = "این مقدار نمی‌تواند از تعداد افراد حادثه دیده بیشتر باشد.";
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  // Revalidate when event_people_num changes
+  useEffect(() => {
+    const max = parseInt(formData.event_people_num || "0", 10) || 0;
+    const fields: CountField[] = ['injured_num', 'feet_num', 'prisoners_num', 'caught_in_snow_flood_num', 'car_num'];
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      fields.forEach(f => {
+        const raw = (formData[f] as string) || '';
+        const num = raw === '' ? 0 : parseInt(raw, 10) || 0;
+        if (max > 0 && num > max) {
+          next[f] = "این مقدار نمی‌تواند از تعداد افراد حادثه دیده بیشتر باشد.";
+        } else {
+          delete next[f];
+        }
+      });
+      return next;
+    });
+  }, [formData.event_people_num]);
 
   // Type events state
   const [typeEvents, setTypeEvents] = useState<TypeEvent[]>([]);
@@ -444,6 +485,194 @@ export const IncidentForm = () => {
                   formData={formData}
                   onInputChange={handleInputChange}
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* زمان وقوع حادثه */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="timeOfIncident" className="text-sm font-medium flex items-center gap-2 justify-end">
+                        <span>زمان وقوع حادثه</span>
+                        <Clock className="h-4 w-4" />
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          time_of_incident: prev.time_of_incident === null ? '' : null
+                        }))}
+                      >
+                        نامشخص
+                      </Button>
+                    </div>
+                    <DatePicker
+                      calendar={persian}
+                      locale={persian_fa}
+                      plugins={[<TimePicker position="bottom" />]}
+                      format="YYYY/MM/DD HH:mm:ss"
+                      placeholder="انتخاب تاریخ و زمان وقوع حادثه"
+                      value={formData.time_of_incident}
+                      onChange={(value) => handleInputChange('time_of_incident', value?.toString() || '')}
+                      disabled={formData.time_of_incident === null}
+                      style={{
+                        width: "100%",
+                        height: "40px",
+                        padding: "8px 12px",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "6px",
+                        fontSize: "14px",
+                        direction: "rtl",
+                        opacity: formData.time_of_incident === null ? 0.5 : 1
+                      }}
+                      containerStyle={{
+                        width: "100%"
+                      }}
+                    />
+                  </div>
+                </div>
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="type_report" className="text-sm font-medium text-right">
+                      نوع گزارش
+                    </Label>
+                    <Select onValueChange={(value) => handleInputChange('type_report', value)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">عملیات</SelectItem>
+                        <SelectItem value="2">خدمات</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="report_event" className="text-sm font-medium text-right">
+                      نوع حادثه *
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger className="popover-trigger-full">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          className="h-11 w-full justify-between text-right relative z-10"
+                          disabled={isLoadingTypeEvents}
+                        >
+                          {selectedTypeEvent ? (
+                            <div className="flex items-center gap-2">
+                              {selectedTypeEvent.icon_path && (
+                                <img
+                                  src={selectedTypeEvent.icon_path}
+                                  alt={selectedTypeEvent.title}
+                                  className="w-4 h-4"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <span>{selectedTypeEvent.title}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">
+                              {isLoadingTypeEvents ? "در حال بارگذاری..." : "انتخاب نوع حادثه"}
+                            </span>
+                          )}
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-full p-0 z-50 popover-content-full" align="start" side="bottom" sameWidth>
+                        <Command>
+                          <CommandInput placeholder="جستجو در انواع حادثه..." className="h-9" />
+                          <CommandList>
+                            <CommandEmpty>
+                              {isLoadingTypeEvents ? "در حال بارگذاری..." : "موردی یافت نشد"}
+                            </CommandEmpty>
+                            {typeEvents.length > 0 && (
+                              <CommandGroup>
+                                {typeEvents.map((event) => (
+                                  <CommandItem
+                                    key={event.id}
+                                    value={event.title}
+                                    onSelect={() => {
+                                      setSelectedTypeEvent(event);
+                                      handleInputChange('report_event', event.id);
+                                    }}
+                                    className="flex items-center justify-between cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {event.icon_path && (
+                                        <img
+                                          src={event.icon_path}
+                                          alt={event.title}
+                                          className="w-4 h-4"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
+                                      )}
+                                      <span>{event.title}</span>
+                                      {event.has_children && (
+                                        <span className="text-xs text-gray-500">(دارای زیرمجموعه)</span>
+                                      )}
+                                    </div>
+                                    {selectedTypeEvent?.id === event.id && (
+                                      <div className="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <div className="h-2 w-2 bg-white rounded-full"></div>
+                                      </div>
+                                    )}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+
+
+                  {(formData.type_call == '2') && (
+
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
+                          حادثه مرتبط
+                        </Label>
+                        <EventSelector
+                          selectedEventId={formData.event_follow_id}
+                          onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                          filters={{
+                            type_event_id: formData.report_event,
+                            province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
+                            branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
+                            operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="follow_up_type" className="text-sm font-medium text-right">
+                          نوع پیگیری
+                        </Label>
+                        <Select onValueChange={(value) => handleInputChange('follow_up_type', value)}>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="انتخاب نوع پیگیری" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(FollowUpType).map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {FollowUpTypeLabels[type]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+
+                </div> */}
+                
                 {formData.type_call == '5' && (
                   <>
                     <ProvinceCitySelector
@@ -462,9 +691,9 @@ export const IncidentForm = () => {
                       externalPosition={externalMapPosition}
                       shouldFlyToExternal={shouldFlyToExternal}
                     />
-                    
-                
-                    
+
+
+
                     {/* بخش اطلاعات آماری حادثه و تروما */}
                     <Card className="mb-4">
                       <CardHeader>
@@ -477,125 +706,214 @@ export const IncidentForm = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {/* تعداد افراد حادثه دیده */}
                           <div className="space-y-2">
-                            <Label htmlFor="event_people_num">تعداد افراد حادثه دیده</Label>
+                            <Label htmlFor="event_people_num">تعداد افراد حادثه دیده *</Label>
                             <Input
                               id="event_people_num"
                               name="event_people_num"
-                              type="number"
+                              required
+                              type="text"
                               value={formData.event_people_num || ""}
-                              onChange={handleInputChange}
-                              
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  event_people_num: e.target.value
+                                });
+                              }}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
                           </div>
-                          
-                          {/* تعداد مصدوم */}
+                          {/* آیا مصدوم دارد؟ */}
                           <div className="space-y-2">
-                            <Label htmlFor="injured_num">تعداد مصدوم</Label>
-                            <Input
-                              id="injured_num"
-                              name="injured_num"
-                              type="number"
-                              value={formData.injured_num || ""}
-                              onChange={handleInputChange}
-                              
-                            />
+                            <Label className="text-sm font-medium text-right">آیا مصدوم دارد؟</Label>
+                            <RadioGroup
+                              dir="rtl"
+                              value={hasInjured}
+                              onValueChange={(value) => {
+                                setHasInjured(value as 'yes' | 'no');
+                                if (value === 'no') {
+                                  setFormData(prev => ({ ...prev, injured_num: '', main_complaint: '' }));
+                                }
+                              }}
+                              className="grid grid-cols-2 gap-2 text-right"
+                            >
+                              <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${hasInjured === 'yes'
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                                }`}>
+                                <Label htmlFor="has-injured-yes" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                  <span className="font-medium">بله</span>
+                                </Label>
+                                <RadioGroupItem id="has-injured-yes" value="yes" className="h-4 w-4" />
+                              </div>
+                              <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${hasInjured === 'no'
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                                }`}>
+                                <Label htmlFor="has-injured-no" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                  <span className="font-medium">خیر</span>
+                                </Label>
+                                <RadioGroupItem id="has-injured-no" value="no" className="h-4 w-4" />
+                              </div>
+                            </RadioGroup>
                           </div>
-                          
+                          {/* تعداد مصدوم - فقط در صورت انتخاب بله */}
+                          {hasInjured === 'yes' && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="injured_num">تعداد مصدوم</Label>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    injured_num: String(prev.injured_num) === '-1' ? '' : '-1'
+                                  }))}
+                                >
+                                  نامشخص
+                                </Button>
+                              </div>
+                              <Input
+                                id="injured_num"
+                                name="injured_num"
+                                type="text"
+                                value={formData.injured_num || ""}
+                                onChange={(e) => handleNumericMaxChange('injured_num', e)}
+                                className={fieldErrors.injured_num ? "border-red-500 focus-visible:ring-red-500" : undefined}
+                                disabled={String(formData.injured_num) === '-1'}
+                                onKeyPress={(e) => {
+                                  if (!/[0-9]/.test(e.key)) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                              {fieldErrors.injured_num && (
+                                <p className="text-red-600 text-sm">{fieldErrors.injured_num}</p>
+                              )}
+                            </div>
+                          )}
+
                           {/* تعداد فوتی */}
                           <div className="space-y-2">
                             <Label htmlFor="feet_num">تعداد فوتی</Label>
                             <Input
                               id="feet_num"
                               name="feet_num"
-                              type="number"
+                              type="text"
                               value={formData.feet_num || ""}
-                              onChange={handleInputChange}
-                              
+                              onChange={(e) => handleNumericMaxChange('feet_num', e)}
+                              className={fieldErrors.feet_num ? "border-red-500 focus-visible:ring-red-500" : undefined}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
+                            {fieldErrors.feet_num && (
+                              <p className="text-red-600 text-sm">{fieldErrors.feet_num}</p>
+                            )}
                           </div>
-                          
-                          {/* تعداد افراد سالم */}
-                          <div className="space-y-2">
-                            <Label htmlFor="healthy_people_num">تعداد افراد سالم</Label>
-                            <Input
-                              id="healthy_people_num"
-                              name="healthy_people_num"
-                              type="number"
-                              value={formData.healthy_people_num || ""}
-                              onChange={handleInputChange}
-                              
-                            />
-                          </div>
-                          
+
+
                           {/* تعداد محبوسین */}
                           <div className="space-y-2">
                             <Label htmlFor="prisoners_num">تعداد محبوسین</Label>
                             <Input
                               id="prisoners_num"
                               name="prisoners_num"
-                              type="number"
+                              type="text"
                               value={formData.prisoners_num || ""}
-                              onChange={handleInputChange}
-                              
+                              onChange={(e) => handleNumericMaxChange('prisoners_num', e)}
+                              className={fieldErrors.prisoners_num ? "border-red-500 focus-visible:ring-red-500" : undefined}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
+                            {fieldErrors.prisoners_num && (
+                              <p className="text-red-600 text-sm">{fieldErrors.prisoners_num}</p>
+                            )}
                           </div>
-                          
+
                           {/* تعداد افراد گرفتار شده در سیل/برف */}
                           <div className="space-y-2">
                             <Label htmlFor="caught_in_snow_flood_num">تعداد افراد گرفتار شده در سیل/برف</Label>
                             <Input
                               id="caught_in_snow_flood_num"
                               name="caught_in_snow_flood_num"
-                              type="number"
+                              type="text"
                               value={formData.caught_in_snow_flood_num || ""}
-                              onChange={handleInputChange}
-                              
+                              onChange={(e) => handleNumericMaxChange('caught_in_snow_flood_num', e)}
+                              className={fieldErrors.caught_in_snow_flood_num ? "border-red-500 focus-visible:ring-red-500" : undefined}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
+                            {fieldErrors.caught_in_snow_flood_num && (
+                              <p className="text-red-600 text-sm">{fieldErrors.caught_in_snow_flood_num}</p>
+                            )}
                           </div>
-                          
+
                           {/* تعداد خودروی آسیب دیده */}
                           <div className="space-y-2">
                             <Label htmlFor="car_num">تعداد خودروی آسیب دیده</Label>
                             <Input
                               id="car_num"
                               name="car_num"
-                              type="number"
+                              type="text"
                               value={formData.car_num || ""}
-                              onChange={handleInputChange}
-                              
+                              onChange={(e) => handleNumericMaxChange('car_num', e)}
+                              className={fieldErrors.car_num ? "border-red-500 focus-visible:ring-red-500" : undefined}
+                              onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
+                            {fieldErrors.car_num && (
+                              <p className="text-red-600 text-sm">{fieldErrors.car_num}</p>
+                            )}
                           </div>
-                          
                           {/* نوع تروما یا مصدومیت */}
-                          <div className="space-y-2">
-                            <Label htmlFor="trauma_type">نوع مصدومیت</Label>
-                            <Input
-                              id="trauma_type"
-                              name="trauma_type"
-                              value={formData.trauma_type || ""}
-                              onChange={handleInputChange}
-<<<<<<< HEAD
-=======
-                              
->>>>>>> be5ef3f6e34b8f0b93b8b6823a0fed96309d466e
-                            />
-                          </div>
-                          
-                          {/* عضو دچار تروما شده */}
-                          <div className="space-y-2">
-                            <Label htmlFor="trauma_member">عضو دچار حادثه</Label>
-                            <Input
-                              id="trauma_member"
-                              name="trauma_member"
-                              value={formData.trauma_member || ""}
-                              onChange={handleInputChange}
-<<<<<<< HEAD
-                            
-=======
-                              
->>>>>>> be5ef3f6e34b8f0b93b8b6823a0fed96309d466e
-                            />
-                          </div>
+                          {hasInjured === 'yes' && formData.injured_num > 0 && (
+                            <div className="space-y-2">
+                              <Label htmlFor="trauma_type">نوع مصدومیت</Label>
+                              <Input
+                                id="trauma_type"
+                                name="trauma_type"
+                                type="text"
+                                value={formData.trauma_type || ""}
+                                onChange={(e) => {
+                                  setFormData({
+                                    ...formData,
+                                    trauma_type: e.target.value
+                                  });
+                                }}
+                              />
+                            </div>)}
+                          {/* شکایت اصلی به‌جای نوع مصدومیت - فقط وقتی مصدوم دارد */}
+                          {hasInjured === 'yes' && formData.injured_num == -1 && (
+                            <div className="space-y-2">
+                              <Label htmlFor="main_complaint">شکایت اصلی</Label>
+                              <Input
+                                id="main_complaint"
+                                name="main_complaint"
+                                type="text"
+                                value={formData.main_complaint || ""}
+                                onChange={(e) => setFormData(prev => ({ ...prev, main_complaint: e.target.value }))}
+                              />
+                            </div>
+                          )}
+
+
+
                         </div>
                       </CardContent>
                     </Card>
@@ -610,7 +928,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="caller_name"
-                      
+
                       value={formData.caller_name}
                       onChange={(e) => handleInputChange('caller_name', e.target.value)}
                       className="h-11 text-right"
@@ -622,14 +940,14 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="caller_lastname"
-                      
+
                       value={formData.caller_lastname}
                       onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
                       className="h-11 text-right"
                     />
                   </div>
                 </div>
-               
+
 
               </div>
               {formData.type_call == '6' && (
@@ -645,148 +963,7 @@ export const IncidentForm = () => {
 
                 </>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="type_report" className="text-sm font-medium text-right">
-                    نوع گزارش
-                  </Label>
-                  <Select onValueChange={(value) => handleInputChange('type_report', value)}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">عملیات</SelectItem>
-                      <SelectItem value="2">خدمات</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-  <Label htmlFor="report_event" className="text-sm font-medium text-right">
-    نوع حادثه *
-  </Label>
-  <Popover>
-    <PopoverTrigger className="popover-trigger-full">
-      <Button
-        type="button"
-        variant="outline"
-        role="combobox"
-        className="h-11 w-full justify-between text-right relative z-10"
-        disabled={isLoadingTypeEvents}
-      >
-        {selectedTypeEvent ? (
-          <div className="flex items-center gap-2">
-            {selectedTypeEvent.icon_path && (
-              <img
-                src={selectedTypeEvent.icon_path}
-                alt={selectedTypeEvent.title}
-                className="w-4 h-4"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            )}
-            <span>{selectedTypeEvent.title}</span>
-          </div>
-        ) : (
-          <span className="text-slate-500">
-            {isLoadingTypeEvents ? "در حال بارگذاری..." : "انتخاب نوع حادثه"}
-          </span>
-        )}
-        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </Button>
-    </PopoverTrigger>
-    
-    <PopoverContent className="w-full p-0 z-50 popover-content-full" align="start" side="bottom" sameWidth>
-      <Command>
-        <CommandInput placeholder="جستجو در انواع حادثه..." className="h-9" />
-        <CommandList>
-          <CommandEmpty>
-            {isLoadingTypeEvents ? "در حال بارگذاری..." : "موردی یافت نشد"}
-          </CommandEmpty>
-          {typeEvents.length > 0 && (
-            <CommandGroup>
-              {typeEvents.map((event) => (
-                <CommandItem
-                  key={event.id}
-                  value={event.title}
-                  onSelect={() => {
-                    setSelectedTypeEvent(event);
-                    handleInputChange('report_event', event.id);
-                  }}
-                  className="flex items-center justify-between cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    {event.icon_path && (
-                      <img
-                        src={event.icon_path}
-                        alt={event.title}
-                        className="w-4 h-4"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <span>{event.title}</span>
-                    {event.has_children && (
-                      <span className="text-xs text-gray-500">(دارای زیرمجموعه)</span>
-                    )}
-                  </div>
-                  {selectedTypeEvent?.id === event.id && (
-                    <div className="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
-                      <div className="h-2 w-2 bg-white rounded-full"></div>
-                    </div>
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-        </CommandList>
-      </Command>
-    </PopoverContent>
-  </Popover>
-</div>
 
-
-
-                {(formData.type_call == '2') && (
-                  
-                  <>
-                  <div className="space-y-2">
-                    <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
-                      حادثه مرتبط (پیگیری)
-                    </Label>
-                    <EventSelector
-                      selectedEventId={formData.event_follow_id}
-                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
-                      filters={{
-                        type_event_id: formData.report_event,
-                        province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
-                        branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-                        operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                  <Label htmlFor="follow_up_type" className="text-sm font-medium text-right">
-                    نوع پیگیری
-                  </Label>
-                  <Select onValueChange={(value) => handleInputChange('follow_up_type', value)}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="انتخاب نوع پیگیری" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FollowUpType).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {FollowUpTypeLabels[type]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                  </>
-                )}
-               
-              </div>
 
 
               {/* Additional fields for operational team dispatch */}
@@ -799,12 +976,12 @@ export const IncidentForm = () => {
               )}
 
               {/* جزئیات تکمیلی - قابل گسترش */}
-              <IncidentDetailsSection
+              {/* <IncidentDetailsSection
                 formData={formData}
                 onInputChange={handleInputChange}
                 onMultiSelectChange={handleMultiSelectChange}
                 onVictimsUpdate={(victims) => setFormData(prev => ({ ...prev, victims_list: victims }))}
-              />
+              /> */}
               {formData.type_call == '8' && (
                 <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-r-4 border-orange-500">
                   <h4 className="font-semibold text-orange-700 dark:text-orange-300 text-right">اطلاعات لغو مأموریت</h4>
@@ -875,7 +1052,7 @@ export const IncidentForm = () => {
                         </Label>
                         <Input
                           id="cancel_phone_number"
-                          
+
                           value={formData.cancel_phone_number || ''}
                           onChange={(e) => handleInputChange('cancel_phone_number', e.target.value)}
                           className="h-11 text-right"
@@ -941,99 +1118,99 @@ export const IncidentForm = () => {
                     </>
                   )}
                   {formData.cancel_source === 'سازمانی' && (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* نوع */}
-  <div className="space-y-2">
-    <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
-      نوع
-    </Label>
-    <Select onValueChange={(value) => handleInputChange('cancel_organizational_type', value)}>
-      <SelectTrigger className="h-10">
-        <SelectValue placeholder="انتخاب نوع" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="درون جمعیت">درون جمعیت</SelectItem>
-        <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-  <div className="space-y-2">
-    <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
-      نوع سازمان
-    </Label>
-    <Popover>
-      <PopoverTrigger className="popover-trigger-full">
-        <Button
-          variant="outline"
-          role="combobox"
-          className="h-10 w-full justify-between text-right"
-        >
-          {formData.cancel_organizational_source.length > 0 
-            ? `${formData.cancel_organizational_source.length} مورد انتخاب شده`
-            : "انتخاب نوع سازمان"
-          }
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="popover-content-full p-0" align="start">
-        <Command>
-          <CommandInput placeholder="جستجو..." className="h-9" />
-          <CommandList>
-            <CommandEmpty>موردی یافت نشد.</CommandEmpty>
-            <CommandGroup>
-            {ORGANIZATIONAL_OPTIONS
-                .filter(option => !formData.cancel_organizational_type || option.type === formData.cancel_organizational_type)
-                .map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    onSelect={() => handleMultiSelectChange('cancel_organizational_source', option.value)}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center">
-                      <Checkbox
-                        checked={formData.cancel_organizational_source.includes(option.value)}
-                        className="ml-2"
-                      />
-                      <span>{option.label}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* نوع */}
+                      <div className="space-y-2">
+                        <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
+                          نوع
+                        </Label>
+                        <Select onValueChange={(value) => handleInputChange('cancel_organizational_type', value)}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="انتخاب نوع" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="درون جمعیت">درون جمعیت</SelectItem>
+                            <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
+                          نوع سازمان
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger className="popover-trigger-full">
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="h-10 w-full justify-between text-right"
+                            >
+                              {formData.cancel_organizational_source.length > 0
+                                ? `${formData.cancel_organizational_source.length} مورد انتخاب شده`
+                                : "انتخاب نوع سازمان"
+                              }
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="popover-content-full p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="جستجو..." className="h-9" />
+                              <CommandList>
+                                <CommandEmpty>موردی یافت نشد.</CommandEmpty>
+                                <CommandGroup>
+                                  {ORGANIZATIONAL_OPTIONS
+                                    .filter(option => !formData.cancel_organizational_type || option.type === formData.cancel_organizational_type)
+                                    .map((option) => (
+                                      <CommandItem
+                                        key={option.value}
+                                        value={option.value}
+                                        onSelect={() => handleMultiSelectChange('cancel_organizational_source', option.value)}
+                                        className="flex items-center justify-between"
+                                      >
+                                        <div className="flex items-center">
+                                          <Checkbox
+                                            checked={formData.cancel_organizational_source.includes(option.value)}
+                                            className="ml-2"
+                                          />
+                                          <span>{option.label}</span>
+                                        </div>
+                                      </CommandItem>
+                                    ))
+                                  }
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+
+                        {/* Selected items display */}
+                        {formData.cancel_organizational_source.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {formData.cancel_organizational_source.map((item) => {
+                              const option = ORGANIZATIONAL_OPTIONS.find(opt => opt.value === item);
+
+                              return (
+                                <Badge key={item} variant="secondary" className="flex items-center gap-1">
+                                  {option?.label}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                    onClick={() => handleMultiSelectChange('cancel_organizational_source', item)}
+                                  />
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </CommandItem>
-                ))
-              }
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-    
-    {/* Selected items display */}
-    {formData.cancel_organizational_source.length > 0 && (
-      <div className="flex flex-wrap gap-2 mt-2">
-        {formData.cancel_organizational_source.map((item) => {
-          const option = ORGANIZATIONAL_OPTIONS.find(opt => opt.value === item);
-          
-          return (
-            <Badge key={item} variant="secondary" className="flex items-center gap-1">
-              {option?.label}
-              <X
-                className="h-3 w-3 cursor-pointer hover:text-red-500"
-                onClick={() => handleMultiSelectChange('cancel_organizational_source', item)}
-              />
-            </Badge>
-          );
-        })}
-      </div>
-    )}
-  </div>
-  </div>
-)}
+                  )}
 
 
                 </div>
               )}
-              {(formData.type_call == '4' || formData.type_call == '8' ) && (
+              {(formData.type_call == '4' || formData.type_call == '8') && (
                 <>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="event_details" className="text-sm font-medium text-right">
                       وضعیت عملیات
@@ -1078,7 +1255,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Textarea
                       id="mission_result"
-                      
+
                       value={formData.mission_result || ''}
                       onChange={(e) => handleInputChange('mission_result', e.target.value)}
                       className="min-h-[100px] resize-none text-right"
@@ -1092,14 +1269,14 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="call_track_name"
-                      
+
                       value={formData.call_track_name || ''}
                       onChange={(e) => handleInputChange('call_track_name', e.target.value)}
                       className="h-11 text-right"
                     />
                   </div>
 
-                
+
                 </div>
               )}
             </div>
@@ -1119,8 +1296,8 @@ export const IncidentForm = () => {
                 className="grid grid-cols-1 md:grid-cols-3 gap-3 text-right"
               >
                 <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.type_call === '1'
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                    : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                  : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
                   }`}>
                   <Label htmlFor="type-call-1" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
                     <span className="font-medium">راهنمایی / اداری</span>
@@ -1131,8 +1308,8 @@ export const IncidentForm = () => {
                   <RadioGroupItem id="type-call-1" value="1" className="h-5 w-5" />
                 </div>
                 <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.type_call === '9'
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                    : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                  : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
                   }`}>
                   <Label htmlFor="type-call-9" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
                     <span className="font-medium">راهیابی</span>
@@ -1154,7 +1331,7 @@ export const IncidentForm = () => {
                   id="operatorPhone"
                   onChange={(e) => handleInputChange('phone_in', e.target.value)}
                   value={formData.phone_in}
-                  
+
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1192,10 +1369,10 @@ export const IncidentForm = () => {
                 </div>
               </div>
             </div>
-               {formData.type_call === '9' && (
+            {formData.type_call === '9' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              
+
 
                 <div className="space-y-2">
                   <Label htmlFor="mainComplaint" className="text-sm font-medium text-right">
@@ -1209,21 +1386,21 @@ export const IncidentForm = () => {
                     className="h-10 text-right"
                   />
                 </div>
-                
-                
-  <div className="space-y-2">
+
+
+                <div className="space-y-2">
                   <Label htmlFor="device" className="text-sm font-medium text-right">
                     نام دستگاه
                   </Label>
-                  <Select 
-                  onValueChange={(value) => {
-                        handleInputChange('device', value);
-                        setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
-                        if (value !== EmergencyServiceType.OTHER) {
-                          setCustomDeviceName("");
-                        }
-                      }}
-                      >
+                  <Select
+                    onValueChange={(value) => {
+                      handleInputChange('device', value);
+                      setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                      if (value !== EmergencyServiceType.OTHER) {
+                        setCustomDeviceName("");
+                      }
+                    }}
+                  >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="انتخاب دستگاه" />
                     </SelectTrigger>
@@ -1233,35 +1410,35 @@ export const IncidentForm = () => {
                           {EmergencyServiceLabels[value as EmergencyServiceType]}
                         </SelectItem>
                       ))}
-                      
-                      
-                      
-                      
-                      
+
+
+
+
+
                     </SelectContent>
                   </Select>
                 </div>
-                 {showCustomDeviceInput && (
-                      <div className="mt-2">
-                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                          نام دستگاه سفارشی
-                        </Label>
-                        <Input
-                          id="customDevice"
-                          value={customDeviceName}
-                          onChange={(e) => {
-                            setCustomDeviceName(e.target.value);
-                            handleInputChange('custom_device_name', e.target.value);
-                          }}
-                          className="h-11 mt-1"
-                        />
-                      </div>
-                    )}
-                    <div className="space-y-2">
+                {showCustomDeviceInput && (
+                  <div className="mt-2">
+                    <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                      نام دستگاه سفارشی
+                    </Label>
+                    <Input
+                      id="customDevice"
+                      value={customDeviceName}
+                      onChange={(e) => {
+                        setCustomDeviceName(e.target.value);
+                        handleInputChange('custom_device_name', e.target.value);
+                      }}
+                      className="h-11 mt-1"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
                   <Label htmlFor="callResult" className="text-sm font-medium text-right">
                     نتیجه تماس
                   </Label>
-                  <Select 
+                  <Select
                     onValueChange={(value) => handleInputChange('call_result', value)}
                     value={formData.call_result}
                   >
@@ -1279,64 +1456,64 @@ export const IncidentForm = () => {
                 </div>
               </div>
             )}
-              {formData.type_call == 6 && (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                  <div className="space-y-2">
-                    <Label htmlFor="device" className="text-sm font-medium text-right">
-                      نام دستگاه
-                    </Label>
-                    <Select 
-                      onValueChange={(value) => {
-                        handleInputChange('device', value);
-                        setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
-                        if (value !== EmergencyServiceType.OTHER) {
-                          setCustomDeviceName("");
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="انتخاب دستگاه" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(EmergencyServiceType).map(([key, value]) => (
-                          <SelectItem key={value} value={value}>
-                            {EmergencyServiceLabels[value as EmergencyServiceType]}
-                          </SelectItem>
-                        ))}
-                      
-                      </SelectContent>
-                    </Select>
-                    
-                    {showCustomDeviceInput && (
-                      <div className="mt-2">
-                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                          نام دستگاه سفارشی
-                        </Label>
-                        <Input
-                          id="customDevice"
-                          value={customDeviceName}
-                          onChange={(e) => {
-                            setCustomDeviceName(e.target.value);
-                            handleInputChange('custom_device_name', e.target.value);
-                          }}
-                          className="h-11 mt-1"
-                        />
-                      </div>
-                    )}
-                  </div>
-                
+            {formData.type_call == 6 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="space-y-2">
+                  <Label htmlFor="device" className="text-sm font-medium text-right">
+                    نام دستگاه
+                  </Label>
+                  <Select
+                    onValueChange={(value) => {
+                      handleInputChange('device', value);
+                      setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                      if (value !== EmergencyServiceType.OTHER) {
+                        setCustomDeviceName("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب دستگاه" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EmergencyServiceType).map(([key, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {EmergencyServiceLabels[value as EmergencyServiceType]}
+                        </SelectItem>
+                      ))}
+
+                    </SelectContent>
+                  </Select>
+
+                  {showCustomDeviceInput && (
+                    <div className="mt-2">
+                      <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                        نام دستگاه سفارشی
+                      </Label>
+                      <Input
+                        id="customDevice"
+                        value={customDeviceName}
+                        onChange={(e) => {
+                          setCustomDeviceName(e.target.value);
+                          handleInputChange('custom_device_name', e.target.value);
+                        }}
+                        className="h-11 mt-1"
+                      />
+                    </div>
+                  )}
+                </div>
+
 
 
               </div>
-              )}
-               <div className="space-y-2">
+            )}
+            <div className="space-y-2">
               <Label htmlFor="text" className="text-sm font-medium text-right">
                 شرح مختصر تماس
               </Label>
               <Textarea
                 id="text"
-                
+
                 value={formData.text || ''}
                 onChange={(e) => handleInputChange('text', e.target.value)}
                 className={`min-h-[100px] resize-none text-right ${(formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''
@@ -1344,49 +1521,49 @@ export const IncidentForm = () => {
                 required
               />
             </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                  <Label htmlFor="callerName" className="text-sm font-medium text-right">
-                    نام تماس گیرنده
-                  </Label>
-                  <Input
-                    id="callerName"
-                    value={formData.caller_first_name}
-                    onChange={(e) => handleInputChange('caller_first_name', e.target.value)}
-                    
-                    className="h-10 text-right"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="callerLastName" className="text-sm font-medium text-right">
+                <Label htmlFor="callerName" className="text-sm font-medium text-right">
+                  نام تماس گیرنده
+                </Label>
+                <Input
+                  id="callerName"
+                  value={formData.caller_first_name}
+                  onChange={(e) => handleInputChange('caller_first_name', e.target.value)}
+
+                  className="h-10 text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="callerLastName" className="text-sm font-medium text-right">
                   نام خانوادگی تماس گیرنده
-                  </Label>
-                  <Input
-                    id="callerLastName"
-                    value={formData.caller_last_name}
-                    onChange={(e) => handleInputChange('caller_last_name', e.target.value)}
-                    
-                    className="h-10 text-right"
-                  />
-                </div>
-                <div className="space-y-2">
+                </Label>
+                <Input
+                  id="callerLastName"
+                  value={formData.caller_last_name}
+                  onChange={(e) => handleInputChange('caller_last_name', e.target.value)}
+
+                  className="h-10 text-right"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="nuisanceCallerNumber" className="text-sm font-medium text-right">
                   شماره تماس گیرنده
                 </Label>
                 <Input
                   id="nuisanceCallerNumber"
-                  
+
                   className="h-10 text-right"
                   dir="ltr"
                 />
               </div>
-              
+
             </div>
-           
 
-            
 
-           
+
+
+
           </>
         )}
         {formData.contact_type === '3' && (
@@ -1402,7 +1579,7 @@ export const IncidentForm = () => {
                   id="operatorPhone"
                   onChange={(e) => handleInputChange('phone_in', e.target.value)}
                   value={formData.phone_in}
-                  
+
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1417,7 +1594,7 @@ export const IncidentForm = () => {
                   locale={persian_fa}
                   plugins={[<TimePicker position="bottom" />]}
                   format="YYYY/MM/DD HH:mm:ss"
-                  
+
                   value={formData.call_time_info}
                   onChange={(value) => handleInputChange('call_time_info', value?.toString() || '')}
                   style={{
@@ -1440,7 +1617,7 @@ export const IncidentForm = () => {
                 </Label>
                 <Input
                   id="nuisanceCallerNumber"
-                  
+
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1449,7 +1626,7 @@ export const IncidentForm = () => {
 
             <NuisanceTypeSection formData={formData} onInputChange={handleInputChange} />
 
-            
+
           </div>
         )}
 

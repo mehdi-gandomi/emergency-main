@@ -24,10 +24,10 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
 };
 
 const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  if (token) {
-    return <Navigate to="/dispatch" replace />;
-  }
+  // const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  // if (token) {
+  //   return <Navigate to="/dispatch" replace />;
+  // }
   return <>{children}</>;
 };
 
@@ -40,7 +40,7 @@ const App = () => (
       <BrowserRouter basename="/">
         <Routes>
           <Route path="/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
-          <Route path="/dispatch" element={<RequireAuth><Index /></RequireAuth>} />
+          <Route path="/dispatch" element={<Index />} />
           <Route path="/events" element={<RequireAuth><Events /></RequireAuth>} />
           <Route path="/events/:id" element={<RequireAuth><EventDetails /></RequireAuth>} />
           <Route path="/operators" element={<RequireAuth><OperatorManagement /></RequireAuth>} />
