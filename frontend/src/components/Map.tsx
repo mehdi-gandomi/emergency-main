@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -251,20 +251,18 @@ function TileLoader() {
   return null;
 }
 
-// Component to handle map interactions
-function MapInteractions({ position, onPositionChange }: { position: [number, number] | null, onPositionChange: (pos: [number, number]) => void }) {
+// Component to handle direct map clicks
+function MapClickHandler({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
   const map = useMap();
-  const [searchResults, setSearchResults] = useState<Array<{ display_name: string, lat: string, lon: string }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
+  
   // Handle map click to set marker (without flyTo)
   useEffect(() => {
     const handleMapClick = (e: any) => {
       const { lat, lng } = e.latlng;
-      onPositionChange([lat, lng]);
-      // Don't flyTo here - just set the marker position
+      // Force immediate update with requestAnimationFrame
+      requestAnimationFrame(() => {
+        onPositionChange([lat, lng]);
+      });
     };
 
     map.on('click', handleMapClick);
@@ -273,6 +271,19 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
       map.off('click', handleMapClick);
     };
   }, [map, onPositionChange]);
+  
+  return null;
+}
+
+// Component to handle map interactions
+function MapInteractions({ position, onPositionChange }: { position: [number, number] | null, onPositionChange: (pos: [number, number]) => void }) {
+  const map = useMap();
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string, lat: string, lon: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  
 
   // Geocoding search function
   const searchAddress = async (query: string) => {
@@ -343,7 +354,7 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
   const toggleSearch = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
+    (e as any).nativeEvent?.stopImmediatePropagation?.();
     setIsSearchExpanded(!isSearchExpanded);
     if (!isSearchExpanded) {
       setSearchResults([]);
@@ -358,11 +369,11 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
         className="relative" 
         onClick={(e) => {
           e.stopPropagation();
-          e.nativeEvent.stopImmediatePropagation();
+          (e as any).nativeEvent?.stopImmediatePropagation?.();
         }}
         onMouseDown={(e) => {
           e.stopPropagation();
-          e.nativeEvent.stopImmediatePropagation();
+          (e as any).nativeEvent?.stopImmediatePropagation?.();
         }}
       >
         {!isSearchExpanded ? (
@@ -371,7 +382,7 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
             onClick={toggleSearch}
             onMouseDown={(e) => {
               e.stopPropagation();
-              e.nativeEvent.stopImmediatePropagation();
+              (e as any).nativeEvent?.stopImmediatePropagation?.();
             }}
             className="w-12 h-12 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl shadow-lg hover:bg-blue-50 hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex items-center justify-center group"
             title="جستجوی آدرس"
@@ -390,15 +401,15 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
                 onChange={handleSearchChange}
                 onClick={(e) => {
                   e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
+                  (e as any).nativeEvent?.stopImmediatePropagation?.();
                 }}
                 onMouseDown={(e) => {
                   e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
+                  (e as any).nativeEvent?.stopImmediatePropagation?.();
                 }}
                 onFocus={(e) => {
                   e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
+                  (e as any).nativeEvent?.stopImmediatePropagation?.();
                 }}
                 onKeyDown={handleKeyDown}
                 className="w-80 h-12 pl-12 pr-12 py-2 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 text-right transition-all duration-300 placeholder:text-gray-400"
@@ -408,7 +419,7 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
                 onClick={toggleSearch}
                 onMouseDown={(e) => {
                   e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
+                  (e as any).nativeEvent?.stopImmediatePropagation?.();
                 }}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200 group"
                 title="بستن"
@@ -425,12 +436,12 @@ function MapInteractions({ position, onPositionChange }: { position: [number, nu
                     key={index}
                     onClick={(e) => {
                       e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
+                      (e as any).nativeEvent?.stopImmediatePropagation?.();
                       handleResultSelect(result);
                     }}
                     onMouseDown={(e) => {
                       e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
+                      (e as any).nativeEvent?.stopImmediatePropagation?.();
                     }}
                     className="w-full p-4 text-right hover:bg-blue-50 hover:shadow-sm border-b border-gray-100 last:border-b-0 transition-all duration-200 group first:rounded-t-xl last:rounded-b-xl"
                   >
@@ -483,29 +494,77 @@ interface MapProps {
 
 export default function Map({ position, onPositionChange, shouldFlyTo = false, enableMarkerDrag = true }: MapProps) {
   const center = DEFAULT_CENTER;
-  const zoom = position ? 15 : 5;
-  const pulsingIcon = createPulsingIcon(enableMarkerDrag);
+  const zoom = position ? 9 : 5;
+
+  // keep icon instance stable
+  const pulsingIcon = useMemo(() => createPulsingIcon(enableMarkerDrag), [enableMarkerDrag]);
+
+  // Keep a local mirror so marker shows immediately on click
+  const [internalPosition, setInternalPosition] = useState<[number, number] | null>(position);
+  
+  // Only update internal position when position prop changes
+  useEffect(() => {
+    setInternalPosition(position ?? null);
+  }, [position]);
+  
+  // Force marker to appear immediately when position changes
+  useEffect(() => {
+    if (internalPosition && mapRef.current) {
+      const map = mapRef.current;
+      // This forces the map to recognize the marker position
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 0);
+    }
+  }, [internalPosition]);
+
+  // Handle map click directly in the main component
+  const mapRef = useRef<L.Map | null>(null);
+  
+  useEffect(() => {
+    if (mapRef.current) {
+      const map = mapRef.current;
+      
+      const handleMapClick = (e: L.LeafletMouseEvent) => {
+        const { lat, lng } = e.latlng;
+        const newPosition: [number, number] = [lat, lng];
+        
+        // Update internal position immediately
+        setInternalPosition(newPosition);
+        
+        // Notify parent
+        if (onPositionChange) onPositionChange(newPosition);
+      };
+      
+      map.on('click', handleMapClick);
+      
+      return () => {
+        map.off('click', handleMapClick);
+      };
+    }
+  }, [onPositionChange]);
+  
+  // Default position change handler (updates local + parent)
+  const handlePositionChange = useCallback((newPosition: [number, number]) => {
+    setInternalPosition(newPosition);           // <— make sure the marker appears/moves now
+    if (onPositionChange) onPositionChange(newPosition);
+  }, [onPositionChange]);
 
   // Cast components to any to avoid TypeScript issues
   const AnyMapContainer: any = MapContainer as any;
   const AnyTileLayer: any = TileLayer as any;
   const AnyMarker: any = Marker as any;
 
-  // Default position change handler
-  const handlePositionChange = (newPosition: [number, number]) => {
-    if (onPositionChange) {
-      onPositionChange(newPosition);
-    }
-  };
-
   return (
     <div className="h-full w-full relative">
       <AnyMapContainer
-        center={center}
+        key={internalPosition ? `map-${internalPosition[0]}-${internalPosition[1]}` : 'map-default'}
+        center={internalPosition || center}
         zoom={zoom}
         style={{ height: '100%', width: '100%' }}
         className="rounded-xl"
         scrollWheelZoom={true}
+        ref={mapRef}
       >
         <AnyTileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -518,9 +577,9 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
         />
         
         {/* Show marker only when position is available */}
-        {position && (
+        {internalPosition && (
           <AnyMarker
-            position={position}
+            position={internalPosition}
             icon={pulsingIcon}
             draggable={enableMarkerDrag}
             eventHandlers={enableMarkerDrag ? {
@@ -564,9 +623,7 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
                 
                 const newPosition = marker.getLatLng();
                 const newPos: [number, number] = [newPosition.lat, newPosition.lng];
-                if (onPositionChange) {
-                  onPositionChange(newPos);
-                }
+                handlePositionChange(newPos); // <— sync local + parent
               },
               drag: (event: any) => {
                 // Ensure dragging state is maintained
@@ -582,9 +639,10 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
         
         {/* Helper components */}
         <InvalidateSize />
-        <FlyToPosition position={position} shouldFlyTo={shouldFlyTo} />
+        <FlyToPosition position={internalPosition} shouldFlyTo={shouldFlyTo} />
         <TileLoader />
-        <MapInteractions position={position} onPositionChange={handlePositionChange} />
+        <MapClickHandler onPositionChange={handlePositionChange} />
+        {/* <MapInteractions position={internalPosition} onPositionChange={handlePositionChange} /> */}
       </AnyMapContainer>
     </div>
   );

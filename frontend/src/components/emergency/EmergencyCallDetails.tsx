@@ -17,10 +17,10 @@ export const EmergencyCallDetails = ({ selectedType, onTypeChange }: EmergencyCa
       color: "emerald"
     },
     {
-      id: "4",
-      label: "حادثه تکراری",
-      icon: <Phone className="h-6 w-6 text-blue-600" />,
-      color: "blue"
+      id: "8",
+      label: "لغو ماموریت",
+      icon: <Copy className="h-6 w-6 text-slate-600" />,
+      color: "slate"
     },
     {
       id: "2",
@@ -28,12 +28,14 @@ export const EmergencyCallDetails = ({ selectedType, onTypeChange }: EmergencyCa
       icon: <XCircle className="h-6 w-6 text-red-600" />,
       color: "red"
     },
+    
     {
-      id: "8",
-      label: "لغو ماموریت",
-      icon: <Copy className="h-6 w-6 text-slate-600" />,
-      color: "slate"
+      id: "4",
+      label: "حادثه تکراری",
+      icon: <Phone className="h-6 w-6 text-blue-600" />,
+      color: "blue"
     },
+    
     {
       id: "6",
       label: "راهیابی تماس",

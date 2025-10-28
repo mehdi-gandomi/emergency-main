@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, Phone, MapPin, Users, Clock, ChevronDown, ChevronUp, X, LifeBuoy, BadgeInfo, Ban, CircleDashed, XCircle, Copy, Share2, ExternalLink, Navigation, Smartphone, Handshake, Save, Send } from "lucide-react";
+import { AlertTriangle, Phone, MapPin, Users, Clock, ChevronDown, ChevronUp, X, LifeBuoy, BadgeInfo, Ban, CircleDashed, XCircle, Copy, Share2, ExternalLink, Navigation, Smartphone, Handshake, Save, Send, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -25,6 +25,8 @@ import { IncidentSourceLocation } from '@/types/enums/incidentSourceLocation';
 import { IncidentDeclarationSource } from '@/types/enums/incidentDeclarationSource';
 import { PublicSource, PublicSourceLabels } from '@/types/enums/publicSource';
 import { RelativeType, RelativeTypeLabels } from '@/types/enums/relativeType';
+import { EmergencyServiceType, EmergencyServiceLabels } from '@/types/enums/emergencyServiceType';
+import { CallResultType, CallResultLabels } from '@/types/enums/callResultType';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -152,12 +154,24 @@ export const IncidentForm = () => {
     required_vehicles: [],
     needs_other_provinces: false,
     mission_notes: "",
+    call_result: "",
   });
 
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [customDeviceName, setCustomDeviceName] = useState<string>("");
+  const [showCustomDeviceInput, setShowCustomDeviceInput] = useState<boolean>(false);
 
+  // Initialize date/time on component mount
+  useEffect(() => {
+    if (!formData.call_time_info) {
+      setFormData(prev => ({
+        ...prev,
+        call_time_info: new Date().toString()
+      }));
+    }
+  }, []);
 
   const [amlLocation, setAmlLocation] = useState(true);
 
@@ -426,6 +440,7 @@ export const IncidentForm = () => {
               {/* اطلاعات تماس گیرنده */}
               <div >
                 <CommonCallInfo
+                  descriptionFieldTitle="شرح مختصر حادثه *"
                   formData={formData}
                   onInputChange={handleInputChange}
                 />
@@ -448,139 +463,7 @@ export const IncidentForm = () => {
                       shouldFlyToExternal={shouldFlyToExternal}
                     />
                     
-                    {/* بخش اطلاعات تکمیلی محل حادثه */}
-                    <Card className="mb-4">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5" />
-                          اطلاعات تکمیلی محل حادثه
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {/* آدرس */}
-                          <div className="space-y-2">
-                            <Label htmlFor="address">آدرس</Label>
-                            <Textarea
-                              id="address"
-                              name="address"
-                              value={formData.address || ""}
-                              onChange={handleInputChange}
-                              placeholder="آدرس دقیق محل حادثه"
-                              className="resize-none"
-                            />
-                          </div>
-                          
-                          {/* خیابان اصلی */}
-                          <div className="space-y-2">
-                            <Label htmlFor="main_street">خیابان اصلی</Label>
-                            <Input
-                              id="main_street"
-                              name="main_street"
-                              value={formData.main_street || ""}
-                              onChange={handleInputChange}
-                              placeholder="خیابان اصلی"
-                            />
-                          </div>
-                          
-                          {/* خیابان فرعی */}
-                          <div className="space-y-2">
-                            <Label htmlFor="sub_street">خیابان فرعی</Label>
-                            <Input
-                              id="sub_street"
-                              name="sub_street"
-                              value={formData.sub_street || ""}
-                              onChange={handleInputChange}
-                              placeholder="خیابان فرعی"
-                            />
-                          </div>
-                          
-                          {/* پلاک */}
-                          <div className="space-y-2">
-                            <Label htmlFor="plaque">پلاک</Label>
-                            <Input
-                              id="plaque"
-                              name="plaque"
-                              value={formData.plaque || ""}
-                              onChange={handleInputChange}
-                              placeholder="پلاک"
-                            />
-                          </div>
-                          
-                          {/* نام محله */}
-                          <div className="space-y-2">
-                            <Label htmlFor="parish_name">نام محله</Label>
-                            <Input
-                              id="parish_name"
-                              name="parish_name"
-                              value={formData.parish_name || ""}
-                              onChange={handleInputChange}
-                              placeholder="نام محله"
-                            />
-                          </div>
-                          
-                          {/* محیط حادثه */}
-                          <div className="space-y-2">
-                            <Label htmlFor="event_environment">محیط حادثه</Label>
-                            <Select
-                              name="event_environment"
-                              value={formData.event_environment?.toString() || ""}
-                              onValueChange={(value) => handleInputChange({
-                                target: { name: "event_environment", value: parseInt(value) || undefined }
-                              } as any)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="انتخاب محیط حادثه" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1">شهری</SelectItem>
-                                <SelectItem value="2">روستایی</SelectItem>
-                                <SelectItem value="3">جاده‌ای</SelectItem>
-                                <SelectItem value="4">کوهستانی</SelectItem>
-                                <SelectItem value="5">ساحلی</SelectItem>
-                                <SelectItem value="6">صنعتی</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          {/* نام محیط حادثه */}
-                          <div className="space-y-2">
-                            <Label htmlFor="event_environment_name">نام محیط حادثه</Label>
-                            <Input
-                              id="event_environment_name"
-                              name="event_environment_name"
-                              value={formData.event_environment_name || ""}
-                              onChange={handleInputChange}
-                              placeholder="نام محیط حادثه"
-                            />
-                          </div>
-                          
-                          {/* نام کارخانه/باغ/منزل مسکونی */}
-                          <div className="space-y-2">
-                            <Label htmlFor="fgh_name">نام کارخانه/باغ/منزل مسکونی</Label>
-                            <Input
-                              id="fgh_name"
-                              name="fgh_name"
-                              value={formData.fgh_name || ""}
-                              onChange={handleInputChange}
-                              placeholder="نام کارخانه/باغ/منزل مسکونی"
-                            />
-                          </div>
-                          
-                          {/* ارتفاع */}
-                          <div className="space-y-2">
-                            <Label htmlFor="height">ارتفاع</Label>
-                            <Input
-                              id="height"
-                              name="height"
-                              value={formData.height || ""}
-                              onChange={handleInputChange}
-                              placeholder="ارتفاع"
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                
                     
                     {/* بخش اطلاعات آماری حادثه و تروما */}
                     <Card className="mb-4">
@@ -601,7 +484,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.event_people_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد افراد حادثه دیده"
+                              
                             />
                           </div>
                           
@@ -614,7 +497,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.injured_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد مصدوم"
+                              
                             />
                           </div>
                           
@@ -627,7 +510,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.feet_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد فوتی"
+                              
                             />
                           </div>
                           
@@ -640,7 +523,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.healthy_people_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد افراد سالم"
+                              
                             />
                           </div>
                           
@@ -653,7 +536,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.prisoners_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد محبوسین"
+                              
                             />
                           </div>
                           
@@ -666,7 +549,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.caught_in_snow_flood_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد افراد گرفتار شده در سیل/برف"
+                              
                             />
                           </div>
                           
@@ -679,7 +562,7 @@ export const IncidentForm = () => {
                               type="number"
                               value={formData.car_num || ""}
                               onChange={handleInputChange}
-                              placeholder="تعداد خودروی آسیب دیده"
+                              
                             />
                           </div>
                           
@@ -691,7 +574,7 @@ export const IncidentForm = () => {
                               name="trauma_type"
                               value={formData.trauma_type || ""}
                               onChange={handleInputChange}
-                              placeholder="نوع تروما یا مصدومیت"
+                              
                             />
                           </div>
                           
@@ -703,7 +586,7 @@ export const IncidentForm = () => {
                               name="trauma_member"
                               value={formData.trauma_member || ""}
                               onChange={handleInputChange}
-                              placeholder="عضو دچار تروما شده"
+                              
                             />
                           </div>
                         </div>
@@ -720,7 +603,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="caller_name"
-                      placeholder="نام"
+                      
                       value={formData.caller_name}
                       onChange={(e) => handleInputChange('caller_name', e.target.value)}
                       className="h-11 text-right"
@@ -732,7 +615,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="caller_lastname"
-                      placeholder="نام خانوادگی"
+                      
                       value={formData.caller_lastname}
                       onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
                       className="h-11 text-right"
@@ -762,7 +645,7 @@ export const IncidentForm = () => {
                   </Label>
                   <Select onValueChange={(value) => handleInputChange('type_report', value)}>
                     <SelectTrigger className="h-11">
-                      <SelectValue placeholder="انتخاب نوع گزارش" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">عملیات</SelectItem>
@@ -898,37 +781,6 @@ export const IncidentForm = () => {
                
               </div>
 
-              {/* Additional Contact.php fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formData.type_call == 6 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="device" className="text-sm font-medium text-right">
-                      نام دستگاه
-                    </Label>
-                    <Select onValueChange={(value) => handleInputChange('device', value)}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="انتخاب دستگاه" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7">امدادخودرو</SelectItem>
-                        <SelectItem value="8">راهداری</SelectItem>
-                        <SelectItem value="9">بهزیستی</SelectItem>
-                        <SelectItem value="0">آب</SelectItem>
-                        <SelectItem value="1">برق</SelectItem>
-                        <SelectItem value="2">گاز</SelectItem>
-                        <SelectItem value="3">110</SelectItem>
-                        <SelectItem value="4">115</SelectItem>
-                        <SelectItem value="5">120</SelectItem>
-                        <SelectItem value="6">125</SelectItem>
-                        <SelectItem value="10">118</SelectItem>
-
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-
-              </div>
 
               {/* Additional fields for operational team dispatch */}
               {formData.type_call === '5' && (
@@ -1016,7 +868,7 @@ export const IncidentForm = () => {
                         </Label>
                         <Input
                           id="cancel_phone_number"
-                          placeholder="شماره تماس"
+                          
                           value={formData.cancel_phone_number || ''}
                           onChange={(e) => handleInputChange('cancel_phone_number', e.target.value)}
                           className="h-11 text-right"
@@ -1219,7 +1071,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Textarea
                       id="mission_result"
-                      placeholder="شرح نتیجه مأموریت..."
+                      
                       value={formData.mission_result || ''}
                       onChange={(e) => handleInputChange('mission_result', e.target.value)}
                       className="min-h-[100px] resize-none text-right"
@@ -1233,7 +1085,7 @@ export const IncidentForm = () => {
                     </Label>
                     <Input
                       id="call_track_name"
-                      placeholder="نام و نام خانوادگی"
+                      
                       value={formData.call_track_name || ''}
                       onChange={(e) => handleInputChange('call_track_name', e.target.value)}
                       className="h-11 text-right"
@@ -1295,7 +1147,7 @@ export const IncidentForm = () => {
                   id="operatorPhone"
                   onChange={(e) => handleInputChange('phone_in', e.target.value)}
                   value={formData.phone_in}
-                  placeholder="مثال: 101"
+                  
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1305,29 +1157,187 @@ export const IncidentForm = () => {
                 <Label htmlFor="callTimeInfo" className="text-sm font-medium text-right">
                   اطلاعات زمانی تماس
                 </Label>
-                <DatePicker
-                  calendar={persian}
-                  locale={persian_fa}
-                  plugins={[<TimePicker position="bottom" />]}
-                  format="YYYY/MM/DD HH:mm:ss"
-                  placeholder="انتخاب تاریخ و زمان تماس"
-                  value={formData.call_time_info}
-                  onChange={(value) => handleInputChange('call_time_info', value?.toString() || '')}
-                  style={{
-                    width: "100%",
-                    height: "40px",
-                    padding: "8px 12px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    direction: "rtl"
-                  }}
-                  containerStyle={{
-                    width: "100%"
-                  }}
-                />
+                <div className="relative">
+                  <DatePicker
+                    calendar={persian}
+                    locale={persian_fa}
+                    plugins={[<TimePicker position="bottom" />]}
+                    format="YYYY/MM/DD HH:mm:ss"
+                    value={formData.call_time_info || new Date().toString()}
+                    onChange={(value) => handleInputChange('call_time_info', value?.toString() || '')}
+                    style={{
+                      width: "100%",
+                      height: "40px",
+                      padding: "8px 12px",
+                      paddingLeft: "40px", // Make room for the calendar icon
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      direction: "rtl"
+                    }}
+                    containerStyle={{
+                      width: "100%"
+                    }}
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer">
+                    <Calendar size={18} className="text-gray-500" />
+                  </div>
+                </div>
               </div>
-             
+            </div>
+               {formData.type_call === '9' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              
+
+                <div className="space-y-2">
+                  <Label htmlFor="mainComplaint" className="text-sm font-medium text-right">
+                    شکایت اصلی تماس گیرنده *
+                  </Label>
+                  <Input
+                    id="mainComplaint"
+                    value={formData.main_complaint}
+                    onChange={(e) => handleInputChange('main_complaint', e.target.value)}
+                    required
+                    className="h-10 text-right"
+                  />
+                </div>
+                
+                
+  <div className="space-y-2">
+                  <Label htmlFor="device" className="text-sm font-medium text-right">
+                    نام دستگاه
+                  </Label>
+                  <Select 
+                  onValueChange={(value) => {
+                        handleInputChange('device', value);
+                        setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                        if (value !== EmergencyServiceType.OTHER) {
+                          setCustomDeviceName("");
+                        }
+                      }}
+                      >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب دستگاه" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EmergencyServiceType).map(([key, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {EmergencyServiceLabels[value as EmergencyServiceType]}
+                        </SelectItem>
+                      ))}
+                      
+                      
+                      
+                      
+                      
+                    </SelectContent>
+                  </Select>
+                </div>
+                 {showCustomDeviceInput && (
+                      <div className="mt-2">
+                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                          نام دستگاه سفارشی
+                        </Label>
+                        <Input
+                          id="customDevice"
+                          value={customDeviceName}
+                          onChange={(e) => {
+                            setCustomDeviceName(e.target.value);
+                            handleInputChange('custom_device_name', e.target.value);
+                          }}
+                          className="h-11 mt-1"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                  <Label htmlFor="callResult" className="text-sm font-medium text-right">
+                    نتیجه تماس
+                  </Label>
+                  <Select 
+                    onValueChange={(value) => handleInputChange('call_result', value)}
+                    value={formData.call_result}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب نتیجه تماس" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CallResultType).map(([key, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {CallResultLabels[value as CallResultType]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+              {formData.type_call == 6 && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                  <div className="space-y-2">
+                    <Label htmlFor="device" className="text-sm font-medium text-right">
+                      نام دستگاه
+                    </Label>
+                    <Select 
+                      onValueChange={(value) => {
+                        handleInputChange('device', value);
+                        setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                        if (value !== EmergencyServiceType.OTHER) {
+                          setCustomDeviceName("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="انتخاب دستگاه" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(EmergencyServiceType).map(([key, value]) => (
+                          <SelectItem key={value} value={value}>
+                            {EmergencyServiceLabels[value as EmergencyServiceType]}
+                          </SelectItem>
+                        ))}
+                      
+                      </SelectContent>
+                    </Select>
+                    
+                    {showCustomDeviceInput && (
+                      <div className="mt-2">
+                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                          نام دستگاه سفارشی
+                        </Label>
+                        <Input
+                          id="customDevice"
+                          value={customDeviceName}
+                          onChange={(e) => {
+                            setCustomDeviceName(e.target.value);
+                            handleInputChange('custom_device_name', e.target.value);
+                          }}
+                          className="h-11 mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                
+
+
+              </div>
+              )}
+               <div className="space-y-2">
+              <Label htmlFor="text" className="text-sm font-medium text-right">
+                شرح مختصر تماس
+              </Label>
+              <Textarea
+                id="text"
+                
+                value={formData.text || ''}
+                onChange={(e) => handleInputChange('text', e.target.value)}
+                className={`min-h-[100px] resize-none text-right ${(formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''
+                  }`}
+                required
+              />
+            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                   <Label htmlFor="callerName" className="text-sm font-medium text-right">
                     نام تماس گیرنده
@@ -1336,7 +1346,7 @@ export const IncidentForm = () => {
                     id="callerName"
                     value={formData.caller_first_name}
                     onChange={(e) => handleInputChange('caller_first_name', e.target.value)}
-                    placeholder="نام تماس گیرنده"
+                    
                     className="h-10 text-right"
                   />
                 </div>
@@ -1348,7 +1358,7 @@ export const IncidentForm = () => {
                     id="callerLastName"
                     value={formData.caller_last_name}
                     onChange={(e) => handleInputChange('caller_last_name', e.target.value)}
-                    placeholder="نام خانوادگی تماس گیرنده"
+                    
                     className="h-10 text-right"
                   />
                 </div>
@@ -1358,71 +1368,18 @@ export const IncidentForm = () => {
                 </Label>
                 <Input
                   id="nuisanceCallerNumber"
-                  placeholder="شماره تماس"
+                  
                   className="h-10 text-right"
                   dir="ltr"
                 />
               </div>
+              
             </div>
-            {formData.type_call === '9' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div className="space-y-2">
-                  <Label htmlFor="device" className="text-sm font-medium text-right">
-                    نام دستگاه
-                  </Label>
-                  <Select onValueChange={(value) => handleInputChange('device', value)}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="انتخاب دستگاه" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">امدادخودرو</SelectItem>
-                      <SelectItem value="8">راهداری</SelectItem>
-                      <SelectItem value="9">بهزیستی</SelectItem>
-                      <SelectItem value="0">آب</SelectItem>
-                      <SelectItem value="1">برق</SelectItem>
-                      <SelectItem value="2">گاز</SelectItem>
-                      <SelectItem value="3">110</SelectItem>
-                      <SelectItem value="4">115</SelectItem>
-                      <SelectItem value="5">120</SelectItem>
-                      <SelectItem value="6">125</SelectItem>
-                      <SelectItem value="10">118</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mainComplaint" className="text-sm font-medium text-right">
-                    شکایت اصلی تماس گیرنده
-                  </Label>
-                  <Input
-                    id="mainComplaint"
-                    value={formData.main_complaint}
-                    onChange={(e) => handleInputChange('main_complaint', e.target.value)}
-                    placeholder="شکایت اصلی تماس گیرنده"
-                    className="h-10 text-right"
-                  />
-                </div>
-
-              </div>
-            )}
+           
 
             
 
-            <div className="space-y-2">
-              <Label htmlFor="text" className="text-sm font-medium text-right">
-                شرح مختصر *
-              </Label>
-              <Textarea
-                id="text"
-                placeholder="شرح مختصر تماس... (الزامی)"
-                value={formData.text || ''}
-                onChange={(e) => handleInputChange('text', e.target.value)}
-                className={`min-h-[100px] resize-none text-right ${(formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''
-                  }`}
-                required
-              />
-            </div>
+           
           </>
         )}
         {formData.contact_type === '3' && (
@@ -1438,7 +1395,7 @@ export const IncidentForm = () => {
                   id="operatorPhone"
                   onChange={(e) => handleInputChange('phone_in', e.target.value)}
                   value={formData.phone_in}
-                  placeholder="مثال: 101"
+                  
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1453,7 +1410,7 @@ export const IncidentForm = () => {
                   locale={persian_fa}
                   plugins={[<TimePicker position="bottom" />]}
                   format="YYYY/MM/DD HH:mm:ss"
-                  placeholder="انتخاب تاریخ و زمان تماس"
+                  
                   value={formData.call_time_info}
                   onChange={(value) => handleInputChange('call_time_info', value?.toString() || '')}
                   style={{
@@ -1476,7 +1433,7 @@ export const IncidentForm = () => {
                 </Label>
                 <Input
                   id="nuisanceCallerNumber"
-                  placeholder="شماره تماس"
+                  
                   className="h-10 text-right"
                   dir="ltr"
                 />
@@ -1491,6 +1448,7 @@ export const IncidentForm = () => {
 
         {formData.contact_type === '4' && (
           <CommonCallInfo
+            descriptionFieldTitle="شرح مختصر تماس"
             formData={formData}
             onInputChange={handleInputChange}
           />

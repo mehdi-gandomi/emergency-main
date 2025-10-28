@@ -6,6 +6,8 @@ import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
+import { Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface CommonCallInfoProps {
   formData: {
@@ -14,10 +16,24 @@ interface CommonCallInfoProps {
     phone_in?: string;
     mobile?: string;
   };
+  descriptionFieldTitle: string;
   onInputChange: (field: string, value: string) => void;
 }
 
-export const CommonCallInfo = ({ formData, onInputChange }: CommonCallInfoProps) => {
+export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange }: CommonCallInfoProps) => {
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  
+  useEffect(() => {
+    // Set current date and time when component mounts
+    const now = new Date();
+    setCurrentDateTime(now);
+    
+    // Always initialize with current date/time if not already set
+    if (!formData.call_time_info) {
+      onInputChange('call_time_info', now.toString());
+    }
+  }, []);
+  
   return (
     <div className="mt-3 space-y-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-r-4 border-red-500">
       
@@ -31,7 +47,7 @@ export const CommonCallInfo = ({ formData, onInputChange }: CommonCallInfoProps)
             id="operatorPhone"
             onChange={(e) => onInputChange('phone_in', e.target.value)}
             value={formData.phone_in}
-            placeholder="مثال: 101"
+            
             className="h-10 text-right"
             dir="ltr"
           />
@@ -41,27 +57,32 @@ export const CommonCallInfo = ({ formData, onInputChange }: CommonCallInfoProps)
           <Label htmlFor="call_time_info" className="text-sm font-medium text-right">
             اطلاعات زمانی تماس
           </Label>
-          <DatePicker
-            calendar={persian}
-            locale={persian_fa}
-            plugins={[<TimePicker position="bottom" key="time-picker" />]}
-            format="YYYY/MM/DD HH:mm:ss"
-            placeholder="انتخاب تاریخ و زمان تماس"
-            value={formData.call_time_info}
-            onChange={(value) => onInputChange('call_time_info', value?.toString() || '')}
-            style={{
-              width: "100%",
-              height: "40px",
-              padding: "8px 12px",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              fontSize: "14px",
-              direction: "rtl"
-            }}
-            containerStyle={{
-              width: "100%"
-            }}
-          />
+          <div className="relative">
+            <DatePicker
+              calendar={persian}
+              locale={persian_fa}
+              plugins={[<TimePicker position="bottom" key="time-picker" />]}
+              format="YYYY/MM/DD HH:mm:ss"
+              value={formData.call_time_info || currentDateTime}
+              onChange={(value) => onInputChange('call_time_info', value?.toString() || '')}
+              style={{
+                width: "100%",
+                height: "40px",
+                padding: "8px 12px",
+                paddingLeft: "40px", // Make room for the calendar icon
+                border: "1px solid #e2e8f0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                direction: "rtl"
+              }}
+              containerStyle={{
+                width: "100%"
+              }}
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer">
+              <Calendar size={18} className="text-gray-500" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -71,7 +92,7 @@ export const CommonCallInfo = ({ formData, onInputChange }: CommonCallInfoProps)
         </Label>
         <Input
           id="CallerNumber"
-          placeholder="شماره تماس "
+          placeholder="شماره موبایل تماس گیرنده را وارد کنید"
           onChange={(e) => onInputChange('mobile', e.target.value)}
           value={formData.mobile}
           className="h-10 text-right"
@@ -81,11 +102,11 @@ export const CommonCallInfo = ({ formData, onInputChange }: CommonCallInfoProps)
       
       <div className="space-y-2">
         <Label htmlFor="text" className="text-sm font-medium text-right">
-          شرح مختصر حادثه *
+          {descriptionFieldTitle}
         </Label>
         <Textarea
           id="text"
-          placeholder="شرح مختصر حادثه... (الزامی)"
+          
           value={formData.text || ''}
           onChange={(e) => onInputChange('text', e.target.value)}
           className={`min-h-[100px] resize-none text-right ${

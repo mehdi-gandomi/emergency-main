@@ -19,6 +19,7 @@ export interface IncidentFormData {
   call_track: string; // شماره تماس پیگیری کننده
   call_track_name: string; // نام و نام خانوادگی پیگیری کننده
   mission_result: string; // نتیجه مأموریت
+  call_result: string; // نتیجه تماس
   cancel_phone_number?: string;   // شماره تماس منبع لغو کننده
   cancel_public_source?: string;  // نوع منبع مردمی لغو کننده
   cancel_relative_type?: string;  // نوع خویشاوندی لغو کننده
@@ -101,6 +102,7 @@ export interface IncidentFormData {
    required_vehicles: RequiredVehicle[];       // نوع خودرو مورد نیاز
    needs_other_provinces: boolean;             // نیازمند حضور سایر استان ها
    mission_notes: string;  //ملاحظات ماموریت
+   call_result?: number;     // نتیجه تماس
 }
 
 export interface VictimInfo {

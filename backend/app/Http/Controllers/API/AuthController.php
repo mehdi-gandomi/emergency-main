@@ -37,7 +37,7 @@ class AuthController extends Controller
             $apiResponse = json_decode($response->getBody()->getContents(), true);
             
             // Check if API response is valid and contains personnel data
-            if (count($apiResponse)) {
+            if (count($apiResponse) && isset($apiResponse[0])) {
                 $personnelData = $apiResponse[0];
                 $roleStatus = isset($personnelData['state']) ? $personnelData['state']:null; // 1 for admin, 2 for operator
                 
@@ -54,6 +54,11 @@ class AuthController extends Controller
                     'post' => isset($personnelData['post']) ? $personnelData['post']:null,
                     'center' => isset($personnelData['operational_centers_title']) ? $personnelData['operational_centers_title']:null,
                     'province' => isset($personnelData['province_title']) ? $personnelData['province_title']:null
+                ], 200);
+            }else{
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'کد ملی یافت نشد.'
                 ], 200);
             }
         } catch (\Exception $e) {
