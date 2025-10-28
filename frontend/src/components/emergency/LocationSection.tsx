@@ -6,6 +6,21 @@ import { MapPin, Share2, ExternalLink, Navigation, Smartphone, Copy } from "luci
 import Map from "../Map";
 import { IncidentFormData } from "@/types/incident";
 
+// Define the search result type
+interface SearchResult {
+  place_id: number;
+  licence: string;
+  osm_type: string;
+  osm_id: number;
+  boundingbox: string[];
+  lat: string;
+  lon: string;
+  display_name: string;
+  class: string;
+  type: string;
+  importance: number;
+}
+
 interface LocationSectionProps {
   formData: IncidentFormData;
   onInputChange: (field: keyof IncidentFormData, value: string | number) => void;
@@ -24,6 +39,8 @@ export const LocationSection = ({
   const [mockPosition, setMockPosition] = useState<[number, number] | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [shouldFlyToMarker, setShouldFlyToMarker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   // Update position when external position changes (from ProvinceCitySelector)
   useEffect(() => {
@@ -43,6 +60,72 @@ export const LocationSection = ({
     const lng = parseFloat(formData.longitude);
     if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     return null;
+  };
+  
+  // Handle search input change with debounce
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    
+    // Auto-search when more than 2 characters are typed
+    if (value.trim().length > 2) {
+      performSearch(value);
+    } else {
+      // Clear results if input is too short
+      setSearchResults([]);
+    }
+  };
+  
+  // Perform the actual search
+  const performSearch = async (query: string) => {
+    if (!query.trim()) return;
+    
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&lang=fa&countrycodes=ir`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Error searching for location:', error);
+      toast({
+        title: "خطا در جستجو",
+        description: "متأسفانه جستجوی مکان با مشکل مواجه شد. لطفاً دوباره تلاش کنید.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle search button click or Enter key press
+  const handleSearch = () => {
+    if (searchQuery.trim().length > 2) {
+      performSearch(searchQuery);
+    }
+  };
+  
+  // Handle selection of a search result
+  const handleSelectSearchResult = (result: SearchResult) => {
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    
+    if (!isNaN(lat) && !isNaN(lon)) {
+      // Update form data
+      onInputChange('latitude', String(lat));
+      onInputChange('longitude', String(lon));
+      
+      // Update map position
+      setMockPosition([lat, lon]);
+      
+      // Fly to the selected location
+      setShouldFlyToMarker(true);
+      
+      // Clear search results
+      setSearchResults([]);
+    }
   };
 
   const handleBTSLocation = () => {
@@ -65,10 +148,10 @@ export const LocationSection = ({
   };
 
   const handlePositionChange = (newPosition: [number, number]) => {
+    // Update the position values
     setMockPosition(newPosition);
     onInputChange('latitude', String(newPosition[0]));
     onInputChange('longitude', String(newPosition[1]));
-    setShouldFlyToMarker(false);
   };
 
   return (
@@ -78,21 +161,24 @@ export const LocationSection = ({
         <MapPin className="h-4 w-4" />
       </Label>
       
-      {amlLocation && (
-        <div className="flex items-center gap-2 p-2 bg-active-call/10 rounded-md border border-active-call/20">
-          <span className="text-sm text-active-call font-medium">
-            📍 موقعیت از BTS دریافت شد
-          </span>
-          <MapPin className="h-4 w-4 text-active-call" />
-        </div>
-      )}
       
-      <Input
-        placeholder="آدرس خیابان یا توضیحات مکان"
-        value={formData.location}
-        onChange={(e) => onInputChange('location', e.target.value)}
-        className="h-11 text-right"
-      />
+      
+      <div className="relative">
+        <Input
+          placeholder="آدرس خیابان یا توضیحات مکان *"
+          value={formData.location}
+          required
+          onChange={(e) => onInputChange('location', e.target.value)}
+          className={`h-11 text-right ${formData.location.length > 0 && formData.location.length < 10 ? 'border-red-500' : ''}`}
+        />
+        <div className="absolute bottom-[-20px] left-0 text-xs">
+          {formData.location.length > 0 && formData.location.length < 10 ? (
+            <span className="text-red-500">حداقل ۱۰ کاراکتر وارد کنید ({formData.location.length}/10)</span>
+          ) : (
+            <span className="text-slate-500">{formData.location.length}/10</span>
+          )}
+        </div>
+      </div>
       
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
@@ -137,10 +223,51 @@ export const LocationSection = ({
 
       {/* نقشه و نشانگر ضربانی */}
       <div className="h-64 md:h-80 overflow-hidden rounded-lg border relative">
+        {/* Search Box */}
+        <div className="absolute top-2 right-2 z-1001 w-64">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="جستجوی مکان..."
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <button 
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              onClick={handleSearch}
+            >
+              🔍
+            </button>
+            
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto z-1002">
+                {searchResults.map((result, index) => (
+                  <div 
+                    key={index}
+                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                    onClick={() => handleSelectSearchResult(result)}
+                  >
+                    {result.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        
         <Map 
           key={`${mockPosition?.[0]}-${mockPosition?.[1]}`}
           position={parseLatLng() ?? mockPosition}
-          onPositionChange={handlePositionChange}
+          onPositionChange={(newPosition) => {
+            // Set the position directly like in handleBTSLocation
+            setMockPosition(newPosition);
+            onInputChange('latitude', String(newPosition[0]));
+            onInputChange('longitude', String(newPosition[1]));
+            // Don't fly to marker when user clicks on map
+            setShouldFlyToMarker(false);
+          }}
           shouldFlyTo={shouldFlyToMarker}
           enableMarkerDrag={true}
         />
@@ -183,7 +310,7 @@ export const LocationSection = ({
             </Button>
 
             {/* Waze */}
-            <Button
+            {/* <Button
               variant="outline"
               className="h-12 flex items-center gap-2 justify-center bg-white hover:bg-gray-50 border-gray-300"
               onClick={() => {
@@ -198,7 +325,7 @@ export const LocationSection = ({
               </div>
               <span className="text-sm">Waze</span>
               <ExternalLink className="h-4 w-4" />
-            </Button>
+            </Button> */}
 
             {/* Apple Maps */}
             <Button
@@ -301,7 +428,7 @@ export const LocationSection = ({
               <Navigation className="h-3 w-3 ml-1" />
               مسیریابی Google
             </Button>
-            
+{/*             
             <Button
               size="sm"
               variant="outline"
@@ -315,7 +442,7 @@ export const LocationSection = ({
             >
               <Navigation className="h-3 w-3 ml-1" />
               مسیریابی Waze
-            </Button>
+            </Button> */}
 
             <Button
               size="sm"

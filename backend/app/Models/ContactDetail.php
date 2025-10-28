@@ -113,6 +113,7 @@ class ContactDetail extends Model
         'cc',                            // کپی کاربن
 
         'organizations_in_place_detail',  // جزئیات ارگان‌های حاضر در صحنه (JSON)
+        'call_result'                     // نتیجه تماس
     ];
 
     protected $casts = [

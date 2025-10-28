@@ -61,11 +61,10 @@ const Login = () => {
         setError("کد ملی وارد شده در سیستم یافت نشد");
         return;
       }
-        if (!response.shift) {
-        setError(`کد ملی ${nationalCode} دسترسی به این سامانه ندارد.`);
+      if(!response.shift){
+        setError(`با کد ملی ${nationalCode}  شما در این سیستم نقشی تعریف نشده است.`);
         return;
       }
-      
       // Check if status is 1 (manager) and validate time access
       if (response.status === 1) {
         // Get current datetime

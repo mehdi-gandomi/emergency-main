@@ -520,15 +520,15 @@ export const EmergencyDashboard = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <IncidentTypeChart />
           <RealTimeMetricsChart />
-        </div>
+        </div> */}
 
         {/* Dispatcher Section - Bottom */}
-        <div className="w-full">
+        {/* <div className="w-full">
           <DispatcherSection />
-        </div>
+        </div> */}
 
         {/* Floating Action Buttons */}
         <div className="fixed bottom-8 right-8 z-50 space-y-3">
