@@ -21,21 +21,26 @@ interface OperationalTeamDispatchSectionProps {
 }
 
 const ORGANIZATIONAL_OPTIONS = [
-  // درون جمعیت
-  { value: "کد عملیاتی", label: "🔢 کد عملیاتی", type: "درون جمعیت" },
-  { value: "عوامل ستادی و شعب", label: "🏢 عوامل ستادی و شعب", type: "درون جمعیت" },
-  { value: "EOC استان معین", label: "🏢 EOC استان معین", type: "درون جمعیت" },
-  { value: "سازمان امداد و نجات", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
+  // درون جمعیت از 1
+  { value: "1", label: "🔢 کد عملیاتی", type: "درون جمعیت" },
+  { value: "2", label: "👨‍💼 رییس شعبه", type: "درون جمعیت" },
+  { value: "3", label: "🧑‍🚒 مسئول امداد شعبه", type: "درون جمعیت" },
+  { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
+  { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
+  { value: "6", label: "👨‍⚕️ معاون امداد و نجات", type: "درون جمعیت" },
+  { value: "7", label: "🛠️ رئیس اداره عملیات", type: "درون جمعیت" },
+  { value: "8", label: "🏢 EOC استان معین", type: "درون جمعیت" },
+  { value: "9", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
   
-  // برون جمعیت  
-  { value: "اورژانس", label: "🚑 اورژانس", type: "برون جمعیت" },
-  { value: "آتش نشانی", label: "🔥 آتش نشانی", type: "برون جمعیت" },
-  { value: "نیروی انتظامی", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
-  { value: "پلیس راه", label: "🛣️ پلیس راه", type: "برون جمعیت" },
-  { value: "راهداری", label: "🛣️ راهداری", type: "برون جمعیت" },
-  { value: "مدیریت بحران", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
-  { value: "فرمانداری", label: "🏛️ فرمانداری", type: "برون جمعیت" },
-  { value: "فدراسیون های ورزشی", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
+  // برون جمعیت  از 20
+  { value: "20", label: "🚑 اورژانس", type: "برون جمعیت" },
+  { value: "21", label: "🔥 آتش نشانی", type: "برون جمعیت" },
+  { value: "22", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
+  { value: "23", label: "🛣️ پلیس راه", type: "برون جمعیت" },
+  { value: "24", label: "🛣️ راهداری", type: "برون جمعیت" },
+  { value: "25", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
+  { value: "26", label: "🏛️ فرمانداری", type: "برون جمعیت" },
+  { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
 ];
 
 export const OperationalTeamDispatchSection = ({ 
@@ -287,7 +292,7 @@ export const OperationalTeamDispatchSection = ({
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
               formData.public_source === PublicSource.RELATIVES 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                : 'border-slate-700 bg-background hover:border-slate-300'
+                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
             }`}>
               <Label htmlFor="public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
                 <span className="font-medium">{PublicSourceLabels[PublicSource.RELATIVES]}</span>

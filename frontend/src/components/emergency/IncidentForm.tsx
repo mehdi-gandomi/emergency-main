@@ -921,32 +921,6 @@ export const IncidentForm = () => {
                 )}
 
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="caller_name" className="text-sm font-medium text-right">
-                      نام تماس گیرنده *
-                    </Label>
-                    <Input
-                      id="caller_name"
-
-                      value={formData.caller_name}
-                      onChange={(e) => handleInputChange('caller_name', e.target.value)}
-                      className="h-11 text-right"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="caller_lastname" className="text-sm font-medium text-right">
-                      نام خانوادگی *
-                    </Label>
-                    <Input
-                      id="caller_lastname"
-
-                      value={formData.caller_lastname}
-                      onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
-                      className="h-11 text-right"
-                    />
-                  </div>
-                </div>
 
 
               </div>
@@ -974,7 +948,35 @@ export const IncidentForm = () => {
                   onMultiSelectChange={handleMultiSelectChange}
                 />
               )}
+              {formData.incident_declaration_source != IncidentDeclarationSource.ORGANIZATIONAL && (
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="caller_name" className="text-sm font-medium text-right">
+                      نام تماس گیرنده *
+                    </Label>
+                    <Input
+                      id="caller_name"
 
+                      value={formData.caller_name}
+                      onChange={(e) => handleInputChange('caller_name', e.target.value)}
+                      className="h-11 text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="caller_lastname" className="text-sm font-medium text-right">
+                      نام خانوادگی *
+                    </Label>
+                    <Input
+                      id="caller_lastname"
+
+                      value={formData.caller_lastname}
+                      onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
+                      className="h-11 text-right"
+                    />
+                  </div>
+                </div>
+              )}
               {/* جزئیات تکمیلی - قابل گسترش */}
               {/* <IncidentDetailsSection
                 formData={formData}
