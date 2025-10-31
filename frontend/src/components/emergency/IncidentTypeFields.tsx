@@ -126,69 +126,7 @@ export const IncidentTypeFields = ({ formData, onInputChange }: IncidentTypeFiel
         />
       </div>
 
-      {/* Cooperating Organizations - multiselect */}
-      <div className="space-y-2">
-        <Label htmlFor="cooperatingOrganizations" className="text-sm font-medium text-right">
-          ارگانهای همکار حاضر در صحنه حادثه
-        </Label>
-        <Popover>
-          <PopoverTrigger className="popover-trigger-full">
-            <Button
-              variant="outline"
-              role="combobox"
-              className="h-10 w-full justify-between text-right"
-            >
-              {formData.cooperating_organizations?.length > 0
-                ? `${formData.cooperating_organizations.length} مورد انتخاب شده`
-                : "انتخاب ارگان همکار"}
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="popover-content-full p-0" align="start">
-            <Command>
-              <CommandInput placeholder="جستجو..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>موردی یافت نشد.</CommandEmpty>
-                <CommandGroup>
-                  {COOPERATING_ORGANIZATIONS.map((option) => (
-                    <CommandItem
-                      key={option.value}
-                      value={option.value}
-                      onSelect={() => onMultiSelectChange('cooperating_organizations', option.value)}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center">
-                        <Checkbox
-                          checked={formData.cooperating_organizations?.includes(option.value)}
-                          className="ml-2"
-                        />
-                        <span>{option.label}</span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {formData.cooperating_organizations?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {formData.cooperating_organizations.map((item) => {
-              const option = COOPERATING_ORGANIZATIONS.find((opt) => opt.value === item);
-              return (
-                <Badge key={item} variant="secondary" className="flex items-center gap-1">
-                  {option?.label ?? item}
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-red-500"
-                    onClick={() => onMultiSelectChange('cooperating_organizations', item)}
-                  />
-                </Badge>
-              );
-            })}
-          </div>
-        )}
-      </div>
+     
     </div>
   );
 };

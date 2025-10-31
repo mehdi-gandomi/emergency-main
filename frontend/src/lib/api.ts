@@ -89,12 +89,6 @@ export interface Event {
 export interface EventsResponse {
   status: string;
   data: Event[];
-  meta: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-  };
 }
 
 export interface EventFilters {

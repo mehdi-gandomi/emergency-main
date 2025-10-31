@@ -5,9 +5,9 @@ export enum FollowUpType {
 }
 
 export const FollowUpTypeLabels: Record<FollowUpType, string> = {
-  [FollowUpType.TEAM_PRESENCE]: 'حضور تیم عملیاتی در محل حادثه',
-  [FollowUpType.INCIDENT_DETAILS]: 'اطلاعات جزئیات حادثه',
-  [FollowUpType.MISSION_RESULT]: 'نتیجه مأموریت',
+  [FollowUpType.TEAM_PRESENCE]: 'حضور تیم های عملیاتی',
+  [FollowUpType.INCIDENT_DETAILS]: 'اعلام گزارش وضعیت صحنه حادثه',
+  [FollowUpType.MISSION_RESULT]: 'درخواست پشتیبانی و نیازمندی های صحنه حادثه',
 };
 
 

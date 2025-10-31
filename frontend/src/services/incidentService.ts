@@ -180,6 +180,10 @@ private  toEnglishDigits(str) {
       mission_types: formData.mission_types || [],
       required_vehicles: formData.required_vehicles || [],
       needs_other_provinces: formData.needs_other_provinces || false,
+      provinces_assisting: formData.provinces_assisting || [],
+      // cooperating organizations presence flag maps to integer expected by backend
+      organizations_in_place: formData.cooperating_orgs_present ? 1 : 0,
+      cooperating_organizations_needed: formData.cooperating_organizations_needed || [],
       cc: formData.cc || null,
       trapped_in_flood_snow_num_detail: formData.trapped_in_flood_snow_num || null,
       organizations_in_place_detail: formData.organizations_in_place || [],
@@ -270,6 +274,31 @@ private  toEnglishDigits(str) {
       return await this.handleResponse<ContactResponse['contact']>(response);
     } catch (error) {
       console.error('Error updating contact status:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error occurred',
+      };
+    }
+  }
+
+  /**
+   * Update existing contact with full form data
+   */
+  async updateContact(contactId: number, formData: IncidentFormData): Promise<ApiResponse<ContactResponse>> {
+    try {
+      const transformedData = this.transformFormData(formData);
+      
+      console.log('Updating contact data:', transformedData);
+      
+      const response = await fetch(`${this.baseURL}/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(transformedData),
+      });
+
+      return await this.handleResponse<ContactResponse>(response);
+    } catch (error) {
+      console.error('Error updating contact:', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Network error occurred',

@@ -16,10 +16,16 @@ use App\Http\Controllers\API\CityController;
 use App\Http\Controllers\API\TownController;
 use App\Http\Controllers\API\VillageController;
 use App\Http\Controllers\API\EventController;
+use App\Http\Controllers\API\TeamController;
 use App\Http\Controllers\API\RecordPersonsStatusController;
 use App\Http\Controllers\API\SendDispatchNotificationMissionController;
-
+use App\Http\Controllers\API\VehicleController;
+use App\Http\Controllers\API\ProvinceAssistingController;
+Route::get('/teams', [TeamController::class, 'index']);
+Route::get('/vehicles', [VehicleController::class, 'index']);
+Route::get('/provinces/assisting', [ProvinceAssistingController::class, 'index']);
 Route::get('/contact-events', [EventController::class, 'contactEvents']);
+Route::get('/events', [EventController::class, 'index']);
 Route::get('/initial-reports', [EventController::class, 'initialReports']);
 Route::get('/initial-reports/{id}', [EventController::class, 'initialReportsShow']);
 Route::get('/contact-events/{id}', [EventController::class, 'contactEventsShow']);

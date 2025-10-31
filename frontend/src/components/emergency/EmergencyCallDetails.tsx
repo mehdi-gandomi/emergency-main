@@ -24,7 +24,7 @@ export const EmergencyCallDetails = ({ selectedType, onTypeChange }: EmergencyCa
     },
     {
       id: "2",
-      label: "بررسی وضعیت",
+      label: "بررسی و اعلام وضعیت",
       icon: <XCircle className="h-6 w-6 text-red-600" />,
       color: "red"
     },

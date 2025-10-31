@@ -19,10 +19,11 @@ export interface IncidentFormData {
   call_track: string; // شماره تماس پیگیری کننده
   call_track_name: string; // نام و نام خانوادگی پیگیری کننده
   mission_result: string; // نتیجه مأموریت
-  call_result: string; // نتیجه تماس
   cancel_phone_number?: string;   // شماره تماس منبع لغو کننده
   cancel_public_source?: string;  // نوع منبع مردمی لغو کننده
   cancel_relative_type?: string;  // نوع خویشاوندی لغو کننده
+  cancel_incident_declaration_source?: string | number; // وضعیت حضور در صحنه (برای لغو)
+  help_triage_result?: string;    // نتیجه تریاژ نجات
   cancel_organizational_source?: string[]; // نوع سازمان لغو کننده
   cancel_organizational_type?: string; // نوع سازمان لغو کننده
   event_details?: string;  // درحال انجام/پایان عملیات
@@ -100,8 +101,12 @@ export interface IncidentFormData {
    operational_teams: OperationalTeam[];       // نوع تیم عملیاتی مورد نیاز
    mission_types: string[];                    // نوع مأموریت تیم عملیاتی
    required_vehicles: RequiredVehicle[];       // نوع خودرو مورد نیاز
-   needs_other_provinces: boolean;             // نیازمند حضور سایر استان ها
-   mission_notes: string;  //ملاحظات ماموریت
+  needs_other_provinces: boolean;             // نیازمند حضور سایر استان ها
+  provinces_assisting: number[];              // استان‌های معین یاری‌کننده
+  cooperating_orgs_present: boolean;          // آیا ارگان های امدادی حاضر هستند؟
+  cooperating_orgs_needed: boolean;          // آیا نیاز به حضور است؟
+  cooperating_organizations_needed: string[]; // ارگان‌های مورد نیاز (زمانی که حاضر نیستند)
+  mission_notes: string;  //ملاحظات ماموریت
    call_result?: number;     // نتیجه تماس
 }
 
@@ -190,13 +195,17 @@ export const COOPERATING_ORGANIZATIONS = [
   { value: "سایر", label: "❓ سایر" }
 ] as const;
 export interface OperationalTeam {
-  type: string;
+  team_id: number;
   count: number;
+  // Legacy support - can be used for display but team_id is required for API
+  type?: string;
 }
 
 export interface RequiredVehicle {
-  type: string;
+  vehicle_id: number;
   count: number;
+  // Legacy support for UI label mapping
+  type?: string;
 }
 
 export const OPERATIONAL_TEAM_TYPES = [
@@ -208,7 +217,8 @@ export const OPERATIONAL_TEAM_TYPES = [
   { value: "واکنش سریع", label: "⚡ واکنش سریع" },
   { value: "توانا", label: "💪 توانا" },
   { value: "آنست", label: "🔧 آنست" },
-  { value: "اسکان اضطراری و ارتباطات رادیویی", label: "📡 اسکان اضطراری و ارتباطات رادیویی" }
+  { value: "تغذیه و اسکان اضطراری", label:"🏚️ تغذیه و اسکان اضطراری"},
+  { value: " ارتباطات رادیویی", label: "📡 ارتباطات رادیویی" }
 ] as const;
 
 export const MISSION_TYPES = [
@@ -230,14 +240,14 @@ export const MISSION_TYPES = [
 ] as const;
 
 export const VEHICLE_TYPES = [
-  { value: "آمبولانس", label: "🚑 آمبولانس" },
-  { value: "خودروی نجات", label: "🚒 خودروی نجات" },
-  { value: "خودروی کمکدار", label: "🚙 خودروی کمکدار" },
-  { value: "قایق نجات", label: "⛵ قایق نجات" },
-  { value: "موتورلانس", label: "🏍️ موتورلانس" },
-  { value: "بالگرد", label: "🚁 بالگرد" },
-  { value: "اتوبوس آمبولانس", label: "🚌 اتوبوس آمبولانس" },
-  { value: "خودروی ارتباطات", label: "📡 خودروی ارتباطات" },
-  { value: "کرافتر", label: "🚐 کرافتر" },
-  { value: "آرگو", label: "🚜 آرگو" }
+  { value: "1", label: "🚑 آمبولانس" },
+  { value: "2", label: "🚒 خودروی نجات" },
+  { value: "3", label: "🚙 خودروی کمکدار" },
+  { value: "4", label: "⛵ قایق نجات" },
+  { value: "5", label: "🏍️ موتورلانس" },
+  { value: "6", label: "🚁 بالگرد" },
+  { value: "7", label: "🚌 اتوبوس آمبولانس" },
+  { value: "8", label: "📡 خودروی ارتباطات" },
+  { value: "9", label: "🚐 کرافتر" },
+  { value: "10", label: "🚜 آرگو" }
 ] as const;

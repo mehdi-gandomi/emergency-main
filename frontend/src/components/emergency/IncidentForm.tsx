@@ -10,19 +10,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertTriangle, Phone, MapPin, Users, Clock, ChevronDown, ChevronUp, X, LifeBuoy, BadgeInfo, Ban, CircleDashed, XCircle, Copy, Share2, ExternalLink, Navigation, Smartphone, Handshake, Save, Send, Calendar } from "lucide-react";
+import { AlertTriangle, Phone, MapPin, Users, Clock, ChevronDown, X, Handshake, Save, Send, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import L from "leaflet";
-import Map from "../Map";
+ 
 import { typeEventService, TypeEvent } from "@/services/typeEventService";
 import { NuisanceTypeSection } from "./NuisanceTypeSection";
 import { IncidentFormData, MISSION_CANCEL_REASONS } from '@/types/incident'
+import { ValidationProvider, useValidationStore } from '@/stores/validationStore'
 import { FollowUpType, FollowUpTypeLabels } from '@/types/enums/followUpType'
 import { incidentService } from '@/services/incidentService';
 import { IncidentSourceLocation } from '@/types/enums/incidentSourceLocation';
-import { IncidentDeclarationSource } from '@/types/enums/incidentDeclarationSource';
+import { IncidentDeclarationSource, IncidentDeclarationSourceLabels } from '@/types/enums/incidentDeclarationSource';
 import { PublicSource, PublicSourceLabels } from '@/types/enums/publicSource';
 import { RelativeType, RelativeTypeLabels } from '@/types/enums/relativeType';
 import { EmergencyServiceType, EmergencyServiceLabels } from '@/types/enums/emergencyServiceType';
@@ -39,26 +37,32 @@ import { ProvinceCitySelector } from "./ProvinceCitySelector";
 import { LocationSection } from "./LocationSection";
 import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ 
 
-const ORGANIZATIONAL_OPTIONS = [
-  // درون جمعیت
-  { value: "کد عملیاتی", label: "🔢 کد عملیاتی", type: "درون جمعیت" },
-  { value: "عوامل ستادی و شعب", label: "🏢 عوامل ستادی و شعب", type: "درون جمعیت" },
-  { value: "EOC استان معین", label: "🏢 EOC استان معین", type: "درون جمعیت" },
-  { value: "سازمان امداد و نجات", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
+//
 
-  // برون جمعیت  
-  { value: "اورژانس", label: "🚑 اورژانس", type: "برون جمعیت" },
-  { value: "آتش نشانی", label: "🔥 آتش نشانی", type: "برون جمعیت" },
-  { value: "نیروی انتظامی", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
-  { value: "پلیس راه", label: "🛣️ پلیس راه", type: "برون جمعیت" },
-  { value: "راهداری", label: "🛣️ راهداری", type: "برون جمعیت" },
-  { value: "مدیریت بحران", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
-  { value: "فرمانداری", label: "🏛️ فرمانداری", type: "برون جمعیت" },
-  { value: "فدراسیون های ورزشی", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
+const CANCEL_ORGANIZATIONAL_OPTIONS = [
+  // درون جمعیت از 1
+  { value: "2", label: "👨‍💼 رییس شعبه", type: "درون جمعیت" },
+  { value: "3", label: "🧑‍🚒 مسئول امداد شعبه", type: "درون جمعیت" },
+  { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
+  { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
+  { value: "6", label: "👨‍⚕️ معاون امداد و نجات", type: "درون جمعیت" },
+  { value: "7", label: "🛠️ رئیس اداره عملیات", type: "درون جمعیت" },
+  { value: "8", label: "🏢 EOC استان معین", type: "درون جمعیت" },
+  { value: "9", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
+
+  // برون جمعیت  از 20
+  { value: "20", label: "🚑 اورژانس", type: "برون جمعیت" },
+  { value: "21", label: "🔥 آتش نشانی", type: "برون جمعیت" },
+  { value: "22", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
+  { value: "23", label: "🛣️ پلیس راه", type: "برون جمعیت" },
+  { value: "24", label: "🛣️ راهداری", type: "برون جمعیت" },
+  { value: "25", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
+  { value: "26", label: "🏛️ فرمانداری", type: "برون جمعیت" },
+  { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
 ];
-export const IncidentForm = () => {
+const IncidentFormInner = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState<IncidentFormData>({
     mobile: "",
@@ -67,6 +71,7 @@ export const IncidentForm = () => {
     cancel_phone_number: "",
     cancel_public_source: "",
     cancel_relative_type: "",
+    cancel_incident_declaration_source: "",
     cancel_organizational_source: [],
     cancel_organizational_type: "",
     call_track: "",
@@ -159,6 +164,7 @@ export const IncidentForm = () => {
 
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [customDeviceName, setCustomDeviceName] = useState<string>("");
   const [showCustomDeviceInput, setShowCustomDeviceInput] = useState<boolean>(false);
@@ -175,9 +181,10 @@ export const IncidentForm = () => {
 
   const [amlLocation, setAmlLocation] = useState(true);
 
-  const [shouldFlyToMarker, setShouldFlyToMarker] = useState(false);
+  
   type CountField = 'injured_num' | 'feet_num' | 'prisoners_num' | 'caught_in_snow_flood_num' | 'car_num';
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<CountField, string>>>({});
+  const validation = useValidationStore();
   const [hasInjured, setHasInjured] = useState<'yes' | 'no' | ''>('');
   // Validate numeric fields against event_people_num and show inline errors
   const handleNumericMaxChange = (field: CountField, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,26 +225,16 @@ export const IncidentForm = () => {
     });
   }, [formData.event_people_num]);
 
+  // Generic field validator registry
+  const handleFieldBlur = (field: keyof IncidentFormData) => {
+    validation.validateField(field, formData);
+  };
+
   // Type events state
   const [typeEvents, setTypeEvents] = useState<TypeEvent[]>([]);
   const [subcategories, setSubcategories] = useState<TypeEvent[]>([]);
   const [selectedTypeEvent, setSelectedTypeEvent] = useState<TypeEvent | null>(null);
   const [isLoadingTypeEvents, setIsLoadingTypeEvents] = useState(false);
-  // const handleLocationSelected = (lat: number, lng: number) => {
-  //   const newPosition: [number, number] = [lat, lng];
-  //   setMockPosition(newPosition);
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     latitude: String(lat),
-  //     longitude: String(lng)
-  //   }));
-  //   setShouldFlyToMarker(true);
-
-  //   // Reset the flyTo flag after a short delay to allow for future manual interactions
-  //   setTimeout(() => {
-  //     setShouldFlyToMarker(false);
-  //   }, 2000);
-  // };
 
   {/* Add state for external location */ }
   const [externalMapPosition, setExternalMapPosition] = useState<[number, number] | null>(null);
@@ -259,15 +256,6 @@ export const IncidentForm = () => {
     }, 2000);
   };
   // Then use LocationSection like this:
-
-  const parseLatLng = (): [number, number] | null => {
-    const lat = parseFloat(formData.latitude);
-    const lng = parseFloat(formData.longitude);
-    if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
-    return null;
-  };
-
-  const [mockPosition, setMockPosition] = useState<[number, number] | null>(null);
 
   // Load type events on component mount
   useEffect(() => {
@@ -304,42 +292,8 @@ export const IncidentForm = () => {
     loadSubcategories();
   }, [selectedTypeEvent]);
 
-
-
-  const pulseIcon = L.divIcon({
-    className: "pulse-marker",
-    html: '<div class="w-3 h-3 bg-blue-500 rounded-full"></div>',
-    iconSize: [12, 12],
-    iconAnchor: [6, 6]
-  });
-
-  const SetViewOnPosition = ({ position }: { position: [number, number] | null }) => {
-    const map = useMap();
-    useEffect(() => {
-      if (position) {
-        map.flyTo(position, Math.max(map.getZoom(), 14), { duration: 0.75 });
-      }
-    }, [position, map]);
-    return null;
-  };
-
-
-
   const handleInputChange = (field: keyof IncidentFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-
-    // Update map position when coordinates are manually entered
-    if (field === 'latitude' || field === 'longitude') {
-      const updatedFormData = { ...formData, [field]: value };
-      const lat = parseFloat(updatedFormData.latitude || '0');
-      const lng = parseFloat(updatedFormData.longitude || '0');
-
-      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        const newPosition: [number, number] = [lat, lng];
-        setMockPosition(newPosition);
-        setShouldFlyToMarker(false); // Don't auto-fly for manual input
-      }
-    }
   };
 
   const handleMultiSelectChange = (field: keyof IncidentFormData, value: string) => {
@@ -394,16 +348,89 @@ export const IncidentForm = () => {
     return true;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
+  // Save draft without clearing form
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
     setValidationErrors([]);
 
     try {
-      const response = await incidentService.submitIncident(formData);
+      let response;
+      if (formData.id) {
+        // Update existing contact
+        response = await incidentService.updateContact(formData.id, formData);
+      } else {
+        // Create new contact
+        response = await incidentService.submitIncident(formData);
+      }
+
+      if (response.success) {
+        // Store contact ID from response
+        const contactId = formData.id || response.data?.contact?.id || response.data?.contact_id || (response.data?.contact as any)?.id;
+
+        if (contactId) {
+          setFormData(prev => ({ ...prev, id: contactId }));
+        }
+
+        toast({
+          title: "موفقیت",
+          description: response.message || "اطلاعات با موفقیت ذخیره شد",
+          className: "bg-green-50 text-green-900 border-green-200",
+        });
+
+        console.log('Contact saved with ID:', contactId);
+      } else {
+        const errorMessage = response.message || "خطا در ذخیره اطلاعات";
+        toast({
+          title: "خطا",
+          description: errorMessage,
+          variant: "destructive",
+        });
+
+        if (response.errors) {
+          const allErrors = Object.values(response.errors).flat();
+          setValidationErrors(allErrors);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: "خطا",
+        description: "خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleSubmit = async (withDispatch = true) => {
+    // Show loading immediately
+    setIsSubmitting(true);
+
+    // First run lightweight UI validations
+    const uiValid = validation.validateAll(formData);
+    console.log('uiValid', uiValid);
+    console.log('validation.errors', validation.errors);
+    if (!uiValid) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return;
+    }
+    setValidationErrors([]);
+
+    try {
+      let response;
+      if (formData.id) {
+        // Update existing contact
+        response = await incidentService.updateContact(formData.id, formData);
+      } else {
+        // Create new contact
+        response = await incidentService.submitIncident(formData);
+      }
 
       if (response.success) {
         toast({
@@ -412,11 +439,105 @@ export const IncidentForm = () => {
           className: "bg-green-50 text-green-900 border-green-200",
         });
 
-        // Optionally redirect or clear form
-        console.log('Contact created with ID:', response.data?.contact_id);
+        const contactId = formData.id || response.data?.contact?.id || response.data?.contact_id || (response.data?.contact as any)?.id;
+        console.log('Contact saved with ID:', contactId);
 
-        // You can add navigation logic here
-        // router.push(`/contacts/${response.data?.contact_id}`);
+        // Clear form after successful submission (not for draft)
+        // Reset form data to initial state
+        setFormData({
+          mobile: "",
+          mission_cancel_reason: "",
+          cancel_source: "",
+          cancel_phone_number: "",
+          cancel_public_source: "",
+          cancel_relative_type: "",
+          cancel_organizational_source: [],
+          cancel_organizational_type: "",
+          call_track: "",
+          call_track_name: "",
+          mission_result: "",
+          type_call: "",
+          type_report: "1",
+          report_event: 58,
+          device: "",
+          event_repetitive_id: 0,
+          organizations_in_place: [],
+          event_details: "",
+          cc: "",
+          text: "",
+          alarm: "",
+          phone_in: "102",
+          date_call: "",
+          time_call: "",
+          nuisance_type: "",
+          caller_name: "",
+          caller_lastname: "",
+          location: "",
+          latitude: "",
+          longitude: "",
+          province_id: "",
+          city_id: "",
+          town_id: "",
+          village_id: "",
+          priority: "",
+          time_of_incident: "",
+          contact_type: "",
+          call_time_info: "",
+          incident_source_location: "",
+          lon: "",
+          lat: "",
+          height: "",
+          width: "",
+          length: "",
+          main_street: "",
+          sub_street: "",
+          address: "",
+          event_environment: "",
+          event_environment_name: "",
+          type_mountain: "",
+          climb_route: "",
+          climb_route_direction: "",
+          event_place: "",
+          event_place_name: "",
+          axis_name: "",
+          city_start_id: undefined,
+          city_end_id: undefined,
+          km_axis: "",
+          nech_name: "",
+          parish_name: "",
+          plaque: "",
+          fgh_name: "",
+          feet_num: "",
+          healthy_people_num: "",
+          prisoners_num: "",
+          trauma_type: "",
+          trauma_member: "",
+          caller_name: "",
+          call_track: "",
+          ratio: "",
+          event_date: "",
+          event_time: "",
+          operator_date: "",
+          operator_time: "",
+          user_date: "",
+          user_time: "",
+          caught_in_snow_flood_num: "",
+          caught_homes_num: "",
+          organizations_in_place_detail: [],
+          main_complaint: "",
+          cooperating_organizations: [],
+          victims_list: [],
+          operational_teams: [],
+          mission_types: [],
+          required_vehicles: [],
+          needs_other_provinces: false,
+          provinces_assisting: [],
+          cooperating_orgs_present: false,
+          cooperating_orgs_needed: false,
+          cooperating_organizations_needed: [],
+          mission_notes: "",
+          call_result: "",
+        });
       } else {
         // Handle API errors
         const errorMessage = response.message || "خطا در ثبت گزارش حادثه";
@@ -485,157 +606,405 @@ export const IncidentForm = () => {
                   formData={formData}
                   onInputChange={handleInputChange}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* زمان وقوع حادثه */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="timeOfIncident" className="text-sm font-medium flex items-center gap-2 justify-end">
-                        <span>زمان وقوع حادثه</span>
-                        <Clock className="h-4 w-4" />
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          time_of_incident: prev.time_of_incident === null ? '' : null
-                        }))}
-                      >
-                        نامشخص
-                      </Button>
+                {formData.type_call == '6' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="main_complaint">شکایت اصلی</Label>
+                      <Input
+                        id="main_complaint"
+                        name="main_complaint"
+                        type="text"
+                        value={formData.main_complaint || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, main_complaint: e.target.value }))}
+                      />
                     </div>
-                    <DatePicker
-                      calendar={persian}
-                      locale={persian_fa}
-                      plugins={[<TimePicker position="bottom" />]}
-                      format="YYYY/MM/DD HH:mm:ss"
-                      placeholder="انتخاب تاریخ و زمان وقوع حادثه"
-                      value={formData.time_of_incident}
-                      onChange={(value) => handleInputChange('time_of_incident', value?.toString() || '')}
-                      disabled={formData.time_of_incident === null}
-                      style={{
-                        width: "100%",
-                        height: "40px",
-                        padding: "8px 12px",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        direction: "rtl",
-                        opacity: formData.time_of_incident === null ? 0.5 : 1
-                      }}
-                      containerStyle={{
-                        width: "100%"
-                      }}
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="device" className="text-sm font-medium text-right">
+                        نام دستگاه
+                      </Label>
+                      <Select
+                        onValueChange={(value) => {
+                          handleInputChange('device', value);
+                          setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                          if (value !== EmergencyServiceType.OTHER) {
+                            setCustomDeviceName("");
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="انتخاب دستگاه" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(EmergencyServiceType).map(([key, value]) => (
+                            <SelectItem key={value} value={value}>
+                              {EmergencyServiceLabels[value as EmergencyServiceType]}
+                            </SelectItem>
+                          ))}
+
+
+
+
+
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {showCustomDeviceInput && (
+                      <div className="mt-2">
+                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                          نام دستگاه سفارشی
+                        </Label>
+                        <Input
+                          id="customDevice"
+                          value={customDeviceName}
+                          onChange={(e) => {
+                            setCustomDeviceName(e.target.value);
+                            handleInputChange('custom_device_name', e.target.value);
+                          }}
+                          className="h-11 mt-1"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="callResult" className="text-sm font-medium text-right">
+                        نتیجه تماس
+                      </Label>
+                      <Select
+                        onValueChange={(value) => handleInputChange('call_result', value)}
+                        value={formData.call_result}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="انتخاب نتیجه تماس" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CallResultType).map(([key, value]) => (
+                            <SelectItem key={value} value={value}>
+                              {CallResultLabels[value as CallResultType]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="text" className="text-sm font-medium text-right">
+                        شرح مختصر تماس
+                      </Label>
+                      <Textarea
+                        id="text"
+
+                        value={formData.text || ''}
+                        onChange={(e) => handleInputChange('text', e.target.value)}
+                        onBlur={() => handleFieldBlur('text')}
+                        aria-invalid={!!validation.getError('text')}
+                        className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+
+                      />
+                      {validation.getError('text') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="type_report" className="text-sm font-medium text-right">
-                      نوع گزارش
-                    </Label>
-                    <Select onValueChange={(value) => handleInputChange('type_report', value)}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">عملیات</SelectItem>
-                        <SelectItem value="2">خدمات</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="report_event" className="text-sm font-medium text-right">
-                      نوع حادثه *
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger className="popover-trigger-full">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          className="h-11 w-full justify-between text-right relative z-10"
-                          disabled={isLoadingTypeEvents}
-                        >
-                          {selectedTypeEvent ? (
-                            <div className="flex items-center gap-2">
-                              {selectedTypeEvent.icon_path && (
-                                <img
-                                  src={selectedTypeEvent.icon_path}
-                                  alt={selectedTypeEvent.title}
-                                  className="w-4 h-4"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <span>{selectedTypeEvent.title}</span>
+                )}
+                {formData.type_call == '8' && (
+                  <div className="space-y-4 p-4 ">
+                    <h4 className="font-semibold text-orange-700 dark:text-orange-300 text-right">اطلاعات لغو مأموریت</h4>
+
+                    {/* منبع لغو کننده */}
+                    <div className="space-y-2">
+                      <Label htmlFor="cancel_source" className="text-sm font-medium text-right">
+                        منبع لغو کننده
+                      </Label>
+                      <RadioGroup
+                        dir="rtl"
+                        value={formData.cancel_source}
+                        onValueChange={(value) => handleInputChange('cancel_source', value)}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+                      >
+                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSource.PUBLIC
+                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                          }`}>
+                          <Label htmlFor="cancel-public" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                            <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.PUBLIC]}</span>
+                            <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                              <Users className="h-5 w-5 text-orange-600" />
                             </div>
-                          ) : (
-                            <span className="text-slate-500">
-                              {isLoadingTypeEvents ? "در حال بارگذاری..." : "انتخاب نوع حادثه"}
-                            </span>
+                          </Label>
+                          <RadioGroupItem id="cancel-public" value={IncidentDeclarationSource.PUBLIC} className="h-4 w-4" />
+                        </div>
+
+                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSource.ORGANIZATIONAL
+                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                          }`}>
+                          <Label htmlFor="cancel-organizational" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                            <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.ORGANIZATIONAL]}</span>
+                            <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                              <Handshake className="h-5 w-5 text-orange-600" />
+                            </div>
+                          </Label>
+                          <RadioGroupItem id="cancel-organizational" value={String(IncidentDeclarationSource.ORGANIZATIONAL)} className="h-4 w-4" />
+                        </div>
+
+                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                          }`}>
+                          <Label htmlFor="cancel-ecall" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                            <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]}</span>
+                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                              <Phone className="h-5 w-5 text-purple-600" />
+                            </div>
+                          </Label>
+                          <RadioGroupItem id="cancel-ecall" value={IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]} className="h-4 w-4" />
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    {/* شماره تماس منبع لغو کننده - Only for مردمی */}
+                    {formData.cancel_source === IncidentDeclarationSource.PUBLIC && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="cancel_phone_number" className="text-sm font-medium text-right">
+                            شماره تماس منبع لغو کننده
+                          </Label>
+                          <Input
+                            id="cancel_phone_number"
+
+                            value={formData.cancel_phone_number || ''}
+                            onChange={(e) => handleInputChange('cancel_phone_number', e.target.value)}
+                            className="h-11 text-right"
+                            dir="ltr"
+                          />
+                        </div>
+
+                        {/* وضعیت حضور در صحنه (لغو) */}
+                        <div className="space-y-2">
+                          <Label htmlFor="cancel_incident_declaration_source" className="text-sm font-medium text-right">
+                            وضعیت حضور در صحنه
+                          </Label>
+                          <RadioGroup
+                            dir="rtl"
+                            value={String(formData.cancel_incident_declaration_source)}
+                            onValueChange={(value) => handleInputChange('cancel_incident_declaration_source', parseInt(value))}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+                          >
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_incident_declaration_source === IncidentSourceLocation.PRESENT_AT_SCENE
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-location-present" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">حاضر در محل</span>
+                                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                                  <MapPin className="h-5 w-5 text-emerald-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-location-present" value={String(IncidentSourceLocation.PRESENT_AT_SCENE)} className="h-4 w-4" />
+                            </div>
+
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_incident_declaration_source === IncidentSourceLocation.LEFT_SCENE
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-location-departed" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">خارج شده از محل</span>
+                                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                                  <MapPin className="h-5 w-5 text-emerald-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-location-departed" value={String(IncidentSourceLocation.LEFT_SCENE)} className="h-4 w-4" />
+                            </div>
+
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_incident_declaration_source === IncidentSourceLocation.ABSENT_FROM_SCENE
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-location-absent" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">عدم حضور در صحنه</span>
+                                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                                  <MapPin className="h-5 w-5 text-emerald-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-location-absent" value={String(IncidentSourceLocation.ABSENT_FROM_SCENE)} className="h-4 w-4" />
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {/* نوع منبع مردمی */}
+                        <div className="space-y-2">
+                          <Label htmlFor="cancel_public_source" className="text-sm font-medium text-right">
+                            نوع منبع مردمی
+                          </Label>
+                          <RadioGroup
+                            dir="rtl"
+                            value={String(formData.cancel_public_source)}
+                            onValueChange={(value) => handleInputChange('cancel_public_source', value)}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
+                          >
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source == PublicSource.PASSERBY
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-public-passerby" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">{PublicSourceLabels[PublicSource.PASSERBY]}</span>
+                                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                                  <MapPin className="h-5 w-5 text-orange-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-public-passerby" value={String(PublicSource.PASSERBY)} className="h-4 w-4" />
+                            </div>
+
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source == PublicSource.RELATIVES
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">{PublicSourceLabels[PublicSource.RELATIVES]}</span>
+                                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                                  <Users className="h-5 w-5 text-orange-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-public-relatives" value={String(PublicSource.RELATIVES)} className="h-4 w-4" />
+                            </div>
+
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source == PublicSource.FRIENDS
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-public-friends" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">{PublicSourceLabels[PublicSource.FRIENDS]}</span>
+                                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                                  <MapPin className="h-5 w-5 text-orange-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-public-friends" value={String(PublicSource.FRIENDS)} className="h-4 w-4" />
+                            </div>
+
+                            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source == PublicSource.VICTIM
+                              ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                              }`}>
+                              <Label htmlFor="cancel-public-victim" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                                <span className="font-medium">{PublicSourceLabels[PublicSource.VICTIM]}</span>
+                                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                                  <Users className="h-5 w-5 text-orange-600" />
+                                </div>
+                              </Label>
+                              <RadioGroupItem id="cancel-public-victim" value={String(PublicSource.VICTIM)} className="h-4 w-4" />
+                            </div>
+                          </RadioGroup>
+
+                          {/* Relative Type Details */}
+                          {formData.cancel_public_source == PublicSource.RELATIVES && (
+                            <div className="space-y-2 mt-3">
+                              <Label htmlFor="cancel_relative_type" className="text-sm font-medium text-right">
+                                نوع خویشاوندی
+                              </Label>
+                              <Select onValueChange={(value) => handleInputChange('cancel_relative_type', value)}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="انتخاب نوع خویشاوندی" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.values(RelativeType).map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                      {RelativeTypeLabels[type]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           )}
-                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
+                        </div>
+                      </>
+                    )}
+                    {formData.cancel_source === String(IncidentDeclarationSource.ORGANIZATIONAL) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* نوع */}
+                        <div className="space-y-2">
+                          <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
+                            نوع
+                          </Label>
+                          <Select onValueChange={(value) => handleInputChange('cancel_organizational_type', value)}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="انتخاب نوع" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="درون جمعیت">درون جمعیت</SelectItem>
+                              <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
+                            نوع سازمان
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger className="popover-trigger-full">
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="h-10 w-full justify-between text-right"
+                              >
+                                {formData.cancel_organizational_source.length > 0
+                                  ? `${formData.cancel_organizational_source.length} مورد انتخاب شده`
+                                  : "انتخاب نوع سازمان"
+                                }
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="popover-content-full p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="جستجو..." className="h-9" />
+                                <CommandList>
+                                  <CommandEmpty>موردی یافت نشد.</CommandEmpty>
+                                  <CommandGroup>
+                                    {CANCEL_ORGANIZATIONAL_OPTIONS
+                                      .filter(option => !formData.cancel_organizational_type || option.type === formData.cancel_organizational_type)
+                                      .map((option) => (
+                                        <CommandItem
+                                          key={option.value}
+                                          value={option.value}
+                                          onSelect={() => handleMultiSelectChange('cancel_organizational_source', option.value)}
+                                          className="flex items-center justify-between"
+                                        >
+                                          <div className="flex items-center">
+                                            <Checkbox
+                                              checked={formData.cancel_organizational_source.includes(option.value)}
+                                              className="ml-2"
+                                            />
+                                            <span>{option.label}</span>
+                                          </div>
+                                        </CommandItem>
+                                      ))
+                                    }
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
 
-                      <PopoverContent className="w-full p-0 z-50 popover-content-full" align="start" side="bottom" sameWidth>
-                        <Command>
-                          <CommandInput placeholder="جستجو در انواع حادثه..." className="h-9" />
-                          <CommandList>
-                            <CommandEmpty>
-                              {isLoadingTypeEvents ? "در حال بارگذاری..." : "موردی یافت نشد"}
-                            </CommandEmpty>
-                            {typeEvents.length > 0 && (
-                              <CommandGroup>
-                                {typeEvents.map((event) => (
-                                  <CommandItem
-                                    key={event.id}
-                                    value={event.title}
-                                    onSelect={() => {
-                                      setSelectedTypeEvent(event);
-                                      handleInputChange('report_event', event.id);
-                                    }}
-                                    className="flex items-center justify-between cursor-pointer"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      {event.icon_path && (
-                                        <img
-                                          src={event.icon_path}
-                                          alt={event.title}
-                                          className="w-4 h-4"
-                                          onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                          }}
-                                        />
-                                      )}
-                                      <span>{event.title}</span>
-                                      {event.has_children && (
-                                        <span className="text-xs text-gray-500">(دارای زیرمجموعه)</span>
-                                      )}
-                                    </div>
-                                    {selectedTypeEvent?.id === event.id && (
-                                      <div className="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <div className="h-2 w-2 bg-white rounded-full"></div>
-                                      </div>
-                                    )}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                          {/* Selected items display */}
+                          {formData.cancel_organizational_source.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {formData.cancel_organizational_source.map((item) => {
+                                const option = CANCEL_ORGANIZATIONAL_OPTIONS.find(opt => opt.value === item);
 
+                                return (
+                                  <Badge key={item} variant="secondary" className="flex items-center gap-1">
+                                    {option?.label}
+                                    <X
+                                      className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                      onClick={() => handleMultiSelectChange('cancel_organizational_source', item)}
+                                    />
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-
-                  {(formData.type_call == '2') && (
-
-                    <>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* حادثه مرتبط / پیگیری */}
                       <div className="space-y-2">
                         <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
                           حادثه مرتبط
@@ -643,36 +1012,37 @@ export const IncidentForm = () => {
                         <EventSelector
                           selectedEventId={formData.event_follow_id}
                           onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                          operation_status={1}
                           filters={{
-                            type_event_id: formData.report_event,
                             province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                             branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-                            operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
                           }}
                         />
                       </div>
+                      {/* دلایل لغو مأموریت */}
                       <div className="space-y-2">
-                        <Label htmlFor="follow_up_type" className="text-sm font-medium text-right">
-                          نوع پیگیری
+                        <Label htmlFor="mission_cancel_reason" className="text-sm font-medium text-right">
+                          دلایل لغو مأموریت
                         </Label>
-                        <Select onValueChange={(value) => handleInputChange('follow_up_type', value)}>
+                        <Select onValueChange={(value) => handleInputChange('mission_cancel_reason', value)}>
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="انتخاب نوع پیگیری" />
+                            <SelectValue placeholder="انتخاب دلیل لغو" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.values(FollowUpType).map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {FollowUpTypeLabels[type]}
+                            {MISSION_CANCEL_REASONS.map((r) => (
+                              <SelectItem key={r.value} value={r.value}>
+                                {r.emoji ? `${r.emoji} ` : ''}{r.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </>
-                  )}
+                    </div>
 
-                </div> */}
-                
+                  </div>
+                )}
+
+
                 {formData.type_call == '5' && (
                   <>
                     <ProvinceCitySelector
@@ -948,8 +1318,97 @@ export const IncidentForm = () => {
                   onMultiSelectChange={handleMultiSelectChange}
                 />
               )}
-              {formData.incident_declaration_source != IncidentDeclarationSource.ORGANIZATIONAL && (
-                
+              {formData.type_call == '2' && (
+
+                <>
+                <div className="grid grid-cols-2 gap-2">
+
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
+                      حادثه مرتبط
+                    </Label>
+                    <EventSelector
+                      selectedEventId={formData.event_follow_id}
+                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                      operation_status={1}
+                      filters={{
+                        province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
+                        branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="follow_up_type" className="text-sm font-medium text-right">
+                      نوع پیگیری
+                    </Label>
+                    <Select onValueChange={(value) => handleInputChange('follow_up_type', value)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="انتخاب نوع پیگیری" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(FollowUpType).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {FollowUpTypeLabels[type]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="mission_result" className="text-sm font-medium text-right">
+                      نتیجه مأموریت *
+                    </Label>
+                    <Textarea
+                      id="mission_result"
+
+                      value={formData.mission_result || ''}
+                      onChange={(e) => handleInputChange('mission_result', e.target.value)}
+                      className="min-h-[100px] resize-none text-right"
+                    />
+                  </div>
+             
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="call_track_name" className="text-sm font-medium text-right">
+                      نام و نام خانوادگی پیگیری کننده (غیر الزامی)
+                    </Label>
+                    <Input
+                      id="call_track_name"
+
+                      value={formData.call_track_name || ''}
+                      onChange={(e) => handleInputChange('call_track_name', e.target.value)}
+                      className="h-11 text-right"
+                    />
+                  </div>
+
+
+                </>
+              )}
+              {(formData.type_call == '4') && (
+                <>
+
+                  {/* حادثه مرتبط / پیگیری */}
+                  <div className="space-y-2">
+                    <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
+                      حادثه مرتبط
+                    </Label>
+                    <EventSelector
+                      selectedEventId={formData.event_follow_id}
+                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                      operation_status={1}
+                      filters={{
+                        province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
+                        branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              {(formData.incident_declaration_source != IncidentDeclarationSource.ORGANIZATIONAL) && formData.cancel_source != String(IncidentDeclarationSource.ORGANIZATIONAL) && (
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="caller_name" className="text-sm font-medium text-right">
@@ -978,309 +1437,15 @@ export const IncidentForm = () => {
                 </div>
               )}
               {/* جزئیات تکمیلی - قابل گسترش */}
-              {/* <IncidentDetailsSection
+              <IncidentDetailsSection
                 formData={formData}
                 onInputChange={handleInputChange}
                 onMultiSelectChange={handleMultiSelectChange}
                 onVictimsUpdate={(victims) => setFormData(prev => ({ ...prev, victims_list: victims }))}
-              /> */}
-              {formData.type_call == '8' && (
-                <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-r-4 border-orange-500">
-                  <h4 className="font-semibold text-orange-700 dark:text-orange-300 text-right">اطلاعات لغو مأموریت</h4>
-
-                  {/* دلایل لغو مأموریت */}
-                  <div className="space-y-2">
-                    <Label htmlFor="mission_cancel_reason" className="text-sm font-medium text-right">
-                      دلایل لغو مأموریت
-                    </Label>
-                    <Select onValueChange={(value) => handleInputChange('mission_cancel_reason', value)}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="انتخاب دلیل لغو" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MISSION_CANCEL_REASONS.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.emoji ? `${r.emoji} ` : ''}{r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* منبع لغو کننده */}
-                  <div className="space-y-2">
-                    <Label htmlFor="cancel_source" className="text-sm font-medium text-right">
-                      منبع لغو کننده
-                    </Label>
-                    <RadioGroup
-                      dir="rtl"
-                      value={formData.cancel_source}
-                      onValueChange={(value) => handleInputChange('cancel_source', value)}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
-                    >
-                      <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === 'مردمی'
-                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                        : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                        }`}>
-                        <Label htmlFor="cancel-public" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                          <span className="font-medium">مردمی</span>
-                          <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                            <Users className="h-5 w-5 text-orange-600" />
-                          </div>
-                        </Label>
-                        <RadioGroupItem id="cancel-public" value="مردمی" className="h-4 w-4" />
-                      </div>
-
-                      <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === 'سازمانی'
-                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                        : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                        }`}>
-                        <Label htmlFor="cancel-organizational" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                          <span className="font-medium">سازمانی</span>
-                          <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                            <Handshake className="h-5 w-5 text-orange-600" />
-                          </div>
-                        </Label>
-                        <RadioGroupItem id="cancel-organizational" value="سازمانی" className="h-4 w-4" />
-                      </div>
-                    </RadioGroup>
-                  </div>
-                  {/* شماره تماس منبع لغو کننده - Only for مردمی */}
-                  {formData.cancel_source === 'مردمی' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="cancel_phone_number" className="text-sm font-medium text-right">
-                          شماره تماس منبع لغو کننده
-                        </Label>
-                        <Input
-                          id="cancel_phone_number"
-
-                          value={formData.cancel_phone_number || ''}
-                          onChange={(e) => handleInputChange('cancel_phone_number', e.target.value)}
-                          className="h-11 text-right"
-                          dir="ltr"
-                        />
-                      </div>
-
-                      {/* نوع منبع مردمی */}
-                      <div className="space-y-2">
-                        <Label htmlFor="cancel_public_source" className="text-sm font-medium text-right">
-                          نوع منبع مردمی
-                        </Label>
-                        <RadioGroup
-                          dir="rtl"
-                          value={formData.cancel_public_source}
-                          onValueChange={(value) => handleInputChange('cancel_public_source', value)}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
-                        >
-                          {Object.values(PublicSource).map((ps) => {
-                            const isSelected = formData.cancel_public_source === ps;
-                            const Icon = ps === PublicSource.VICTIM || ps === PublicSource.RELATIVES ? Users : MapPin;
-                            return (
-                              <div
-                                key={ps}
-                                className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${isSelected
-                                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                                  : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                                  }`}
-                              >
-                                <Label htmlFor={`cancel-public-${ps.toLowerCase()}`} className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                                  <span className="font-medium">{PublicSourceLabels[ps]}</span>
-                                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                    <Icon className="h-5 w-5 text-orange-600" />
-                                  </div>
-                                </Label>
-                                <RadioGroupItem id={`cancel-public-${ps.toLowerCase()}`} value={ps} className="h-4 w-4" />
-                              </div>
-                            );
-                          })}
-                        </RadioGroup>
-
-                        {/* Relative Type Details */}
-                        {formData.cancel_public_source === PublicSource.RELATIVES && (
-                          <div className="space-y-2 mt-3">
-                            <Label htmlFor="cancel_relative_type" className="text-sm font-medium text-right">
-                              نوع خویشاوندی
-                            </Label>
-                            <Select onValueChange={(value) => handleInputChange('cancel_relative_type', value)}>
-                              <SelectTrigger className="h-10">
-                                <SelectValue placeholder="انتخاب نوع خویشاوندی" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.values(RelativeType).map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {RelativeTypeLabels[type]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                  {formData.cancel_source === 'سازمانی' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* نوع */}
-                      <div className="space-y-2">
-                        <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
-                          نوع
-                        </Label>
-                        <Select onValueChange={(value) => handleInputChange('cancel_organizational_type', value)}>
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="انتخاب نوع" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="درون جمعیت">درون جمعیت</SelectItem>
-                            <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
-                          نوع سازمان
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger className="popover-trigger-full">
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="h-10 w-full justify-between text-right"
-                            >
-                              {formData.cancel_organizational_source.length > 0
-                                ? `${formData.cancel_organizational_source.length} مورد انتخاب شده`
-                                : "انتخاب نوع سازمان"
-                              }
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="popover-content-full p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="جستجو..." className="h-9" />
-                              <CommandList>
-                                <CommandEmpty>موردی یافت نشد.</CommandEmpty>
-                                <CommandGroup>
-                                  {ORGANIZATIONAL_OPTIONS
-                                    .filter(option => !formData.cancel_organizational_type || option.type === formData.cancel_organizational_type)
-                                    .map((option) => (
-                                      <CommandItem
-                                        key={option.value}
-                                        value={option.value}
-                                        onSelect={() => handleMultiSelectChange('cancel_organizational_source', option.value)}
-                                        className="flex items-center justify-between"
-                                      >
-                                        <div className="flex items-center">
-                                          <Checkbox
-                                            checked={formData.cancel_organizational_source.includes(option.value)}
-                                            className="ml-2"
-                                          />
-                                          <span>{option.label}</span>
-                                        </div>
-                                      </CommandItem>
-                                    ))
-                                  }
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-
-                        {/* Selected items display */}
-                        {formData.cancel_organizational_source.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {formData.cancel_organizational_source.map((item) => {
-                              const option = ORGANIZATIONAL_OPTIONS.find(opt => opt.value === item);
-
-                              return (
-                                <Badge key={item} variant="secondary" className="flex items-center gap-1">
-                                  {option?.label}
-                                  <X
-                                    className="h-3 w-3 cursor-pointer hover:text-red-500"
-                                    onClick={() => handleMultiSelectChange('cancel_organizational_source', item)}
-                                  />
-                                </Badge>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+              />
 
 
-                </div>
-              )}
-              {(formData.type_call == '4' || formData.type_call == '8') && (
-                <>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="event_details" className="text-sm font-medium text-right">
-                      وضعیت عملیات
-                    </Label>
-                    <Select onValueChange={(value) => handleInputChange('event_details', value)}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="انتخاب نوع گزارش" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">در حال انجام </SelectItem>
-                        <SelectItem value="2">پایان موقت</SelectItem>
-                        <SelectItem value="3">پایان عملیات</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {/* حادثه مرتبط / پیگیری */}
-                  <div className="space-y-2">
-                    <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
-                      حادثه مرتبط (پیگیری)
-                    </Label>
-                    <EventSelector
-                      selectedEventId={formData.event_follow_id}
-                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
-                      filters={{
-                        type_event_id: formData.report_event,
-                        province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
-                        branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-                        operation_status: formData.event_details ? parseInt(formData.event_details) : 1,
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-              {formData.type_call == '2' && (
-                <div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-r-4 border-purple-500">
-                  <h4 className="font-semibold text-purple-700 dark:text-purple-300 text-right">اطلاعات پایان مأموریت</h4>
-
-                  {/* نتیجه مأموریت */}
-                  <div className="space-y-2">
-                    <Label htmlFor="mission_result" className="text-sm font-medium text-right">
-                      نتیجه مأموریت *
-                    </Label>
-                    <Textarea
-                      id="mission_result"
-
-                      value={formData.mission_result || ''}
-                      onChange={(e) => handleInputChange('mission_result', e.target.value)}
-                      className="min-h-[100px] resize-none text-right"
-                    />
-                  </div>
-
-                  {/* نام و نام خانوادگی پیگیری کننده */}
-                  <div className="space-y-2">
-                    <Label htmlFor="call_track_name" className="text-sm font-medium text-right">
-                      نام و نام خانوادگی پیگیری کننده (غیر الزامی)
-                    </Label>
-                    <Input
-                      id="call_track_name"
-
-                      value={formData.call_track_name || ''}
-                      onChange={(e) => handleInputChange('call_track_name', e.target.value)}
-                      className="h-11 text-right"
-                    />
-                  </div>
-
-
-                </div>
-              )}
             </div>
           </>
         )}
@@ -1459,54 +1624,56 @@ export const IncidentForm = () => {
               </div>
             )}
             {formData.type_call == 6 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 flex flex-col gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                <div className="space-y-2">
-                  <Label htmlFor="device" className="text-sm font-medium text-right">
-                    نام دستگاه
-                  </Label>
-                  <Select
-                    onValueChange={(value) => {
-                      handleInputChange('device', value);
-                      setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
-                      if (value !== EmergencyServiceType.OTHER) {
-                        setCustomDeviceName("");
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="انتخاب دستگاه" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(EmergencyServiceType).map(([key, value]) => (
-                        <SelectItem key={value} value={value}>
-                          {EmergencyServiceLabels[value as EmergencyServiceType]}
-                        </SelectItem>
-                      ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="device" className="text-sm font-medium text-right">
+                      نام دستگاه
+                    </Label>
+                    <Select
+                      onValueChange={(value) => {
+                        handleInputChange('device', value);
+                        setShowCustomDeviceInput(value == EmergencyServiceType.OTHER);
+                        if (value !== EmergencyServiceType.OTHER) {
+                          setCustomDeviceName("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="انتخاب دستگاه" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(EmergencyServiceType).map(([key, value]) => (
+                          <SelectItem key={value} value={value}>
+                            {EmergencyServiceLabels[value as EmergencyServiceType]}
+                          </SelectItem>
+                        ))}
 
-                    </SelectContent>
-                  </Select>
+                      </SelectContent>
+                    </Select>
 
-                  {showCustomDeviceInput && (
-                    <div className="mt-2">
-                      <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                        نام دستگاه سفارشی
-                      </Label>
-                      <Input
-                        id="customDevice"
-                        value={customDeviceName}
-                        onChange={(e) => {
-                          setCustomDeviceName(e.target.value);
-                          handleInputChange('custom_device_name', e.target.value);
-                        }}
-                        className="h-11 mt-1"
-                      />
-                    </div>
-                  )}
+                    {showCustomDeviceInput && (
+                      <div className="mt-2">
+                        <Label htmlFor="customDevice" className="text-sm font-medium text-right">
+                          نام دستگاه سفارشی
+                        </Label>
+                        <Input
+                          id="customDevice"
+                          value={customDeviceName}
+                          onChange={(e) => {
+                            setCustomDeviceName(e.target.value);
+                            handleInputChange('custom_device_name', e.target.value);
+                          }}
+                          className="h-11 mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+
+
                 </div>
-
-
-
               </div>
             )}
             <div className="space-y-2">
@@ -1655,12 +1822,33 @@ export const IncidentForm = () => {
 
         {/* دکمه‌های عملیات */}
         <div className="flex gap-3 pt-4">
+          {/* Draft save button - only show when contact_type is 1 and help_triage_result is 1 */}
+          {formData.contact_type == '1' && formData.help_triage_result == '1' && (
+            <Button
+              className="h-12 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft || isSubmitting}
+              variant="outline"
+            >
+              {isSavingDraft ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-2"></div>
+                  در حال ذخیره...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 ml-2" />
+                  ارسال اطلاعات به کارشناس هدایت عملیات
+                </>
+              )}
+            </Button>
+          )}
 
           {formData.contact_type == '1' && (
             <Button
               className="flex-1 h-12 bg-emergency hover:bg-emergency/90 text-emergency-foreground"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting || isSavingDraft}
             >
               {isSubmitting ? (
                 <>
@@ -1675,11 +1863,30 @@ export const IncidentForm = () => {
               )}
             </Button>
           )}
+          {formData.type_call == '4' && (
+            <Button
+              className="flex-1 h-12 bg-emergency hover:bg-emergency/90 text-emergency-foreground"
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting || isSavingDraft}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-2"></div>
+                  در حال ثبت...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 ml-2" />
+                  ثبت بدون ارجاع به دیسپچ
+                </>
+              )}
+            </Button>
+          )}
           {formData.contact_type != '1' && (
             <Button
               className="flex-1 h-12 bg-emergency hover:bg-emergency/90 text-emergency-foreground"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting || isSavingDraft}
             >
               {isSubmitting ? (
                 <>
@@ -1699,4 +1906,10 @@ export const IncidentForm = () => {
     </Card>
   );
 };
+
+export const IncidentForm = () => (
+  <ValidationProvider>
+    <IncidentFormInner />
+  </ValidationProvider>
+);
 export default IncidentForm;

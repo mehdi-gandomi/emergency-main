@@ -101,6 +101,7 @@ class ContactDetail extends Model
         'cancel_relative_type',           // نوع خویشاوندی لغو کننده
         'cancel_organizational_source',   // منبع سازمانی لغو کننده (JSON)
         'cancel_organizational_type',     // نوع سازمان لغو کننده
+        'cancel_incident_declaration_source',//وضعیت حضور در صحنه لغو کننده
         'mission_result',                 // نتیجه مأموریت
 
         'call_track_name',                // نام پیگیری کننده
@@ -113,7 +114,10 @@ class ContactDetail extends Model
         'cc',                            // کپی کاربن
 
         'organizations_in_place_detail',  // جزئیات ارگان‌های حاضر در صحنه (JSON)
-        'call_result'                     // نتیجه تماس
+        'call_result',                     // نتیجه تماس
+        'help_triage_result', // نتیجه تریاژ نجات
+        'provinces_assisting', // استان‌های همکار معین
+        'cooperating_organizations_needed', // ارگان‌های مورد نیاز
     ];
 
     protected $casts = [
@@ -159,7 +163,9 @@ class ContactDetail extends Model
         'required_vehicles'               => 'array',
         'organizations_in_place_detail'   => 'array',
         'cooperating_organizations'       => 'array',
-        'needs_other_provinces'           => 'boolean'
+        'needs_other_provinces'           => 'boolean',
+        'provinces_assisting'             => 'array',
+        'cooperating_organizations_needed' => 'array'
     ];
 
     public function contact(): BelongsTo
