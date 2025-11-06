@@ -45,8 +45,8 @@ const CANCEL_ORGANIZATIONAL_OPTIONS = [
   // درون جمعیت از 1
   { value: "2", label: "👨‍💼 رییس شعبه", type: "درون جمعیت" },
   { value: "3", label: "🧑‍🚒 مسئول امداد شعبه", type: "درون جمعیت" },
-  { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
-  { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
+  // { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
+  // { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
   { value: "6", label: "👨‍⚕️ معاون امداد و نجات", type: "درون جمعیت" },
   { value: "7", label: "🛠️ رئیس اداره عملیات", type: "درون جمعیت" },
   { value: "8", label: "🏢 EOC استان معین", type: "درون جمعیت" },
@@ -62,11 +62,31 @@ const CANCEL_ORGANIZATIONAL_OPTIONS = [
   { value: "26", label: "🏛️ فرمانداری", type: "برون جمعیت" },
   { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
 ];
-const IncidentFormInner = () => {
+interface IncidentFormInnerProps {
+  onMobileStatsChange?: (stats: {
+    number: string;
+    total: number;
+    completed: number;
+    missed: number;
+    ongoing: number;
+    history: Array<{
+      id: string;
+      time: string;
+      duration: string;
+      type: 'incoming' | 'outgoing';
+      number: string;
+      status: 'completed' | 'missed' | 'ongoing';
+      location?: string;
+    }>;
+  } | null) => void;
+}
+
+const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {}) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState<IncidentFormData>({
     mobile: "",
     mission_cancel_reason: "",
+    custom_device_name:"",
     cancel_source: "",
     cancel_phone_number: "",
     cancel_public_source: "",
@@ -91,8 +111,7 @@ const IncidentFormInner = () => {
     date_call: "",
     time_call: "",
     nuisance_type: "",
-
-    // Additional UI fields - now using snake_case
+    help_triage_result: "",
     caller_name: "",
     caller_lastname: "",
     location: "",
@@ -105,7 +124,7 @@ const IncidentFormInner = () => {
     priority: "",
     time_of_incident: "",
     contact_type: "",
-    call_time_info: "",
+    call_time_info: new Date().toString(),
     incident_source_location: "",  // Will be populated with IncidentSourceLocation enum values
 
     // Fields from contact_details table
@@ -157,7 +176,7 @@ const IncidentFormInner = () => {
     operational_teams: [],
     mission_types: [],
     required_vehicles: [],
-    needs_other_provinces: false,
+    needs_other_provinces: "",
     mission_notes: "",
     call_result: "",
   });
@@ -169,15 +188,8 @@ const IncidentFormInner = () => {
   const [customDeviceName, setCustomDeviceName] = useState<string>("");
   const [showCustomDeviceInput, setShowCustomDeviceInput] = useState<boolean>(false);
 
-  // Initialize date/time on component mount
-  useEffect(() => {
-    if (!formData.call_time_info) {
-      setFormData(prev => ({
-        ...prev,
-        call_time_info: new Date().toString()
-      }));
-    }
-  }, []);
+  
+
 
   const [amlLocation, setAmlLocation] = useState(true);
 
@@ -186,6 +198,27 @@ const IncidentFormInner = () => {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<CountField, string>>>({});
   const validation = useValidationStore();
   const [hasInjured, setHasInjured] = useState<'yes' | 'no' | ''>('');
+  const [hasNewInfo, setHasNewInfo] = useState<'yes' | 'no' | ''>('');
+
+  // Initialize phone_in from shift_data.extension in localStorage (set at login)
+  useEffect(() => {
+    setTimeout(()=>{
+      try {
+        const shiftStr = localStorage.getItem('shift_data');
+        console.log(shiftStr)
+        if (shiftStr) {
+          const shift = JSON.parse(shiftStr);
+          
+          const ext = shift?.extension;
+          
+          if (ext) {
+            setFormData(prev => ({ ...prev, phone_in: String(ext) }));
+          }
+        }
+      } catch {}
+
+    },500)
+  }, []);
   // Validate numeric fields against event_people_num and show inline errors
   const handleNumericMaxChange = (field: CountField, e: React.ChangeEvent<HTMLInputElement>) => {
     const max = parseInt(formData.event_people_num || "0", 10) || 0;
@@ -197,11 +230,27 @@ const IncidentFormInner = () => {
     const num = raw === '' ? 0 : parseInt(raw, 10) || 0;
     setFieldErrors(prev => {
       const next = { ...prev };
-      if (max > 0 && num > max) {
-        next[field] = "این مقدار نمی‌تواند از تعداد افراد حادثه دیده بیشتر باشد.";
+
+      // Compute sum of injured_num + feet_num with the latest typed value
+      const injuredCurrent = field === 'injured_num'
+        ? num
+        : ((formData.injured_num != null && /^\d+$/.test(String(formData.injured_num))) ? parseInt(String(formData.injured_num), 10) : 0);
+      const feetCurrent = field === 'feet_num'
+        ? num
+        : ((formData.feet_num != null && /^\d+$/.test(String(formData.feet_num))) ? parseInt(String(formData.feet_num), 10) : 0);
+
+      const sumInjuredFeet = injuredCurrent + feetCurrent;
+
+      if (max > 0 && sumInjuredFeet > max) {
+        const message = "جمع مصدوم و فوتی نباید از تعداد افراد حادثه دیده بیشتر باشد.";
+        next['injured_num'] = message;
+        next['feet_num'] = message;
       } else {
-        delete next[field];
+        // Clear both related errors when within limit
+        delete next['injured_num'];
+        delete next['feet_num'];
       }
+
       return next;
     });
   };
@@ -293,19 +342,32 @@ const IncidentFormInner = () => {
   }, [selectedTypeEvent]);
 
   const handleInputChange = (field: keyof IncidentFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Validate the field with updated formData
+      validation.validateField(field, updated);
+      return updated;
+    });
   };
 
   const handleMultiSelectChange = (field: keyof IncidentFormData, value: string) => {
     setFormData(prev => {
       const currentValues = prev[field] as string[];
+      let updated;
       if (currentValues.includes(value)) {
         // Remove the value if it's already selected
-        return { ...prev, [field]: currentValues.filter(v => v !== value) };
+        updated = { ...prev, [field]: currentValues.filter(v => v !== value) };
       } else {
         // Add the value if it's not selected
-        return { ...prev, [field]: [...currentValues, value] };
+        updated = { ...prev, [field]: [...currentValues, value] };
       }
+      // Validate the field with updated formData
+      if (field === 'cancel_organizational_source') {
+        setTimeout(() => {
+          validation.validateField(field, updated);
+        }, 0);
+      }
+      return updated;
     });
   };
 
@@ -342,6 +404,8 @@ const IncidentFormInner = () => {
         description: validation.errors[0],
         variant: "destructive",
       });
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return false;
     }
 
@@ -409,10 +473,16 @@ const IncidentFormInner = () => {
 
     // First run lightweight UI validations
     const uiValid = validation.validateAll(formData);
-    console.log('uiValid', uiValid);
-    console.log('validation.errors', validation.errors);
+    console.log(uiValid,formData)
     if (!uiValid) {
       setIsSubmitting(false);
+      toast({
+        title: "خطا در اعتبارسنجی",
+        description: "لطفاً فیلدهای الزامی را تکمیل کنید",
+        variant: "destructive",
+      });
+      // Scroll to top
+      // window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -466,7 +536,7 @@ const IncidentFormInner = () => {
           cc: "",
           text: "",
           alarm: "",
-          phone_in: "102",
+          phone_in: "",
           date_call: "",
           time_call: "",
           nuisance_type: "",
@@ -482,7 +552,7 @@ const IncidentFormInner = () => {
           priority: "",
           time_of_incident: "",
           contact_type: "",
-          call_time_info: "",
+          call_time_info: new Date().toString(),
           incident_source_location: "",
           lon: "",
           lat: "",
@@ -512,8 +582,6 @@ const IncidentFormInner = () => {
           prisoners_num: "",
           trauma_type: "",
           trauma_member: "",
-          caller_name: "",
-          call_track: "",
           ratio: "",
           event_date: "",
           event_time: "",
@@ -530,10 +598,10 @@ const IncidentFormInner = () => {
           operational_teams: [],
           mission_types: [],
           required_vehicles: [],
-          needs_other_provinces: false,
+          needs_other_provinces: "",
           provinces_assisting: [],
-          cooperating_orgs_present: false,
-          cooperating_orgs_needed: false,
+          cooperating_orgs_present: "",
+          cooperating_orgs_needed: "",
           cooperating_organizations_needed: [],
           mission_notes: "",
           call_result: "",
@@ -572,16 +640,16 @@ const IncidentFormInner = () => {
   };
 
   return (
-    <Card className="w-full" dir="rtl">
+    <Card className="w-full " dir="rtl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-right">
           <AlertTriangle className="h-5 w-5 text-emergency" />
-          گزارش حادثه اضطراری
+          فرم ثبت اطلاعات تماس
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 !px-4">
         {/* اطلاعات حیاتی - همیشه نمایان */}
-        <div className="space-y-4 p-4 bg-muted/50 rounded-lg border-r-4 border-emergency">
+        <div className="space-y-4 p-2 bg-muted/50 rounded-lg border-r-4 border-emergency">
 
           {/* نوع تماس */}
           <ContactTypeSection
@@ -605,9 +673,10 @@ const IncidentFormInner = () => {
                   descriptionFieldTitle="شرح مختصر حادثه *"
                   formData={formData}
                   onInputChange={handleInputChange}
+                  onMobileStatsChange={onMobileStatsChange}
                 />
                 {formData.type_call == '6' && (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 mb-4">
                     <div className="space-y-2">
                       <Label htmlFor="main_complaint">شکایت اصلی</Label>
                       <Input
@@ -615,12 +684,18 @@ const IncidentFormInner = () => {
                         name="main_complaint"
                         type="text"
                         value={formData.main_complaint || ""}
-                        onChange={(e) => setFormData(prev => ({ ...prev, main_complaint: e.target.value }))}
+                        onChange={(e) => handleInputChange('main_complaint', e.target.value)}
+                        onBlur={() => handleFieldBlur('main_complaint')}
+                        aria-invalid={!!validation.getError('main_complaint')}
+                        className={validation.getError('main_complaint') ? 'border-red-500 focus-visible:ring-red-500' : ''}
                       />
+                      {validation.getError('main_complaint') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('main_complaint')}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="device" className="text-sm font-medium text-right">
-                        نام دستگاه
+                        نام دستگاه *
                       </Label>
                       <Select
                         onValueChange={(value) => {
@@ -629,9 +704,20 @@ const IncidentFormInner = () => {
                           if (value !== EmergencyServiceType.OTHER) {
                             setCustomDeviceName("");
                           }
+                          setTimeout(() => {
+                            validation.validateField('device', { ...formData, device: value } as IncidentFormData);
+                          }, 0);
+                        }}
+                        onOpenChange={(open) => {
+                          if (!open && formData.device) {
+                            validation.validateField('device', formData);
+                          }
                         }}
                       >
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger 
+                          className={`h-11 ${validation.getError('device') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                          aria-invalid={!!validation.getError('device')}
+                        >
                           <SelectValue placeholder="انتخاب دستگاه" />
                         </SelectTrigger>
                         <SelectContent>
@@ -647,11 +733,14 @@ const IncidentFormInner = () => {
 
                         </SelectContent>
                       </Select>
+                      {validation.getError('device') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('device')}</p>
+                      )}
                     </div>
                     {showCustomDeviceInput && (
                       <div className="mt-2">
                         <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                          نام دستگاه سفارشی
+                          نام دستگاه
                         </Label>
                         <Input
                           id="customDevice"
@@ -660,8 +749,13 @@ const IncidentFormInner = () => {
                             setCustomDeviceName(e.target.value);
                             handleInputChange('custom_device_name', e.target.value);
                           }}
-                          className="h-11 mt-1"
+                          onBlur={() => handleFieldBlur('custom_device_name' as any)}
+                          aria-invalid={!!validation.getError('custom_device_name')}
+                          className={`h-11 mt-1 ${validation.getError('custom_device_name') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         />
+                        {validation.getError('custom_device_name') && (
+                          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('custom_device_name')}</p>
+                        )}
                       </div>
                     )}
                     <div className="space-y-2">
@@ -669,10 +763,23 @@ const IncidentFormInner = () => {
                         نتیجه تماس
                       </Label>
                       <Select
-                        onValueChange={(value) => handleInputChange('call_result', value)}
+                        onValueChange={(value) => {
+                          handleInputChange('call_result', value);
+                          setTimeout(() => {
+                            validation.validateField('call_result', { ...formData, call_result: value } as IncidentFormData);
+                          }, 0);
+                        }}
+                        onOpenChange={(open) => {
+                          if (!open && formData.call_result) {
+                            validation.validateField('call_result', formData);
+                          }
+                        }}
                         value={formData.call_result}
                       >
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger 
+                          className={`h-11 ${validation.getError('call_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                          aria-invalid={!!validation.getError('call_result')}
+                        >
                           <SelectValue placeholder="انتخاب نتیجه تماس" />
                         </SelectTrigger>
                         <SelectContent>
@@ -683,25 +790,43 @@ const IncidentFormInner = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="text" className="text-sm font-medium text-right">
-                        شرح مختصر تماس
-                      </Label>
-                      <Textarea
-                        id="text"
-
-                        value={formData.text || ''}
-                        onChange={(e) => handleInputChange('text', e.target.value)}
-                        onBlur={() => handleFieldBlur('text')}
-                        aria-invalid={!!validation.getError('text')}
-                        className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-
-                      />
-                      {validation.getError('text') && (
-                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                      {validation.getError('call_result') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('call_result')}</p>
                       )}
                     </div>
+                    <div className="relative">
+                    <Label className="text-sm font-medium text-right">
+                    موقعیت
+                        </Label>
+        <Input
+          placeholder=""
+          value={formData.location}
+          required
+          onChange={(e) => onInputChange('location', e.target.value)}
+          className={`h-11 text-right ${formData.location.length > 0 && formData.location.length < 24 ? 'border-red-500' : ''}`}
+        />
+        <div className="absolute bottom-[-20px] left-0 text-xs">
+        <span className="text-slate-500">{formData.location.length}/24</span>
+        </div>
+      </div>
+      <div className="space-y-2">
+                <Label htmlFor="text" className="text-sm font-medium text-right">
+                  شرح مختصر تماس
+                </Label>
+                <Textarea
+                  id="text"
+
+                  value={formData.text || ''}
+                  onChange={(e) => handleInputChange('text', e.target.value)}
+                  onBlur={() => handleFieldBlur('text')}
+                  aria-invalid={!!validation.getError('text')}
+                  className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : (formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''}`}
+                  required
+                />
+                {validation.getError('text') && (
+                  <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                )}
+              </div>      
                   </div>
                 )}
                 {formData.type_call == '8' && (
@@ -716,10 +841,15 @@ const IncidentFormInner = () => {
                       <RadioGroup
                         dir="rtl"
                         value={formData.cancel_source}
-                        onValueChange={(value) => handleInputChange('cancel_source', value)}
-                        className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+                        onValueChange={(value) => {
+                          handleInputChange('cancel_source', value);
+                          setTimeout(() => {
+                            validation.validateField('cancel_source', { ...formData, cancel_source: value } as IncidentFormData);
+                          }, 0);
+                        }}
+                        className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('cancel_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
                       >
-                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSource.PUBLIC
+                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === String(IncidentDeclarationSource.PUBLIC)
                           ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                           : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
                           }`}>
@@ -732,7 +862,7 @@ const IncidentFormInner = () => {
                           <RadioGroupItem id="cancel-public" value={IncidentDeclarationSource.PUBLIC} className="h-4 w-4" />
                         </div>
 
-                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSource.ORGANIZATIONAL
+                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === String(IncidentDeclarationSource.ORGANIZATIONAL)
                           ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                           : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
                           }`}>
@@ -745,22 +875,14 @@ const IncidentFormInner = () => {
                           <RadioGroupItem id="cancel-organizational" value={String(IncidentDeclarationSource.ORGANIZATIONAL)} className="h-4 w-4" />
                         </div>
 
-                        <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_source === IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                          : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-                          }`}>
-                          <Label htmlFor="cancel-ecall" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                            <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]}</span>
-                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                              <Phone className="h-5 w-5 text-purple-600" />
-                            </div>
-                          </Label>
-                          <RadioGroupItem id="cancel-ecall" value={IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]} className="h-4 w-4" />
-                        </div>
+                       
                       </RadioGroup>
+                      {validation.getError('cancel_source') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_source')}</p>
+                      )}
                     </div>
                     {/* شماره تماس منبع لغو کننده - Only for مردمی */}
-                    {formData.cancel_source === IncidentDeclarationSource.PUBLIC && (
+                    {formData.cancel_source === String(IncidentDeclarationSource.PUBLIC) && (
                       <>
                         <div className="space-y-2">
                           <Label htmlFor="cancel_phone_number" className="text-sm font-medium text-right">
@@ -784,8 +906,13 @@ const IncidentFormInner = () => {
                           <RadioGroup
                             dir="rtl"
                             value={String(formData.cancel_incident_declaration_source)}
-                            onValueChange={(value) => handleInputChange('cancel_incident_declaration_source', parseInt(value))}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+                            onValueChange={(value) => {
+                              handleInputChange('cancel_incident_declaration_source', parseInt(value));
+                              setTimeout(() => {
+                                validation.validateField('cancel_incident_declaration_source', { ...formData, cancel_incident_declaration_source: parseInt(value) } as IncidentFormData);
+                              }, 0);
+                            }}
+                            className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('cancel_incident_declaration_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
                           >
                             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_incident_declaration_source === IncidentSourceLocation.PRESENT_AT_SCENE
                               ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
@@ -826,6 +953,9 @@ const IncidentFormInner = () => {
                               <RadioGroupItem id="cancel-location-absent" value={String(IncidentSourceLocation.ABSENT_FROM_SCENE)} className="h-4 w-4" />
                             </div>
                           </RadioGroup>
+                          {validation.getError('cancel_incident_declaration_source') && (
+                            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_incident_declaration_source')}</p>
+                          )}
                         </div>
 
                         {/* نوع منبع مردمی */}
@@ -836,8 +966,13 @@ const IncidentFormInner = () => {
                           <RadioGroup
                             dir="rtl"
                             value={String(formData.cancel_public_source)}
-                            onValueChange={(value) => handleInputChange('cancel_public_source', value)}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
+                            onValueChange={(value) => {
+                              handleInputChange('cancel_public_source', value);
+                              setTimeout(() => {
+                                validation.validateField('cancel_public_source', { ...formData, cancel_public_source: value } as IncidentFormData);
+                              }, 0);
+                            }}
+                            className={`grid grid-cols-1 md:grid-cols-2 gap-2 text-right ${validation.getError('cancel_public_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
                           >
                             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${formData.cancel_public_source == PublicSource.PASSERBY
                               ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
@@ -891,15 +1026,33 @@ const IncidentFormInner = () => {
                               <RadioGroupItem id="cancel-public-victim" value={String(PublicSource.VICTIM)} className="h-4 w-4" />
                             </div>
                           </RadioGroup>
+                          {validation.getError('cancel_public_source') && (
+                            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_public_source')}</p>
+                          )}
 
                           {/* Relative Type Details */}
-                          {formData.cancel_public_source == PublicSource.RELATIVES && (
+                          {String(formData.cancel_public_source) === String(PublicSource.RELATIVES) && (
                             <div className="space-y-2 mt-3">
                               <Label htmlFor="cancel_relative_type" className="text-sm font-medium text-right">
                                 نوع خویشاوندی
                               </Label>
-                              <Select onValueChange={(value) => handleInputChange('cancel_relative_type', value)}>
-                                <SelectTrigger className="h-10">
+                              <Select 
+                                onValueChange={(value) => {
+                                  handleInputChange('cancel_relative_type', value);
+                                  setTimeout(() => {
+                                    validation.validateField('cancel_relative_type', { ...formData, cancel_relative_type: value } as IncidentFormData);
+                                  }, 0);
+                                }}
+                                onOpenChange={(open) => {
+                                  if (!open && formData.cancel_relative_type) {
+                                    validation.validateField('cancel_relative_type', formData);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger 
+                                  className={`h-10 ${validation.getError('cancel_relative_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                  aria-invalid={!!validation.getError('cancel_relative_type')}
+                                >
                                   <SelectValue placeholder="انتخاب نوع خویشاوندی" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -910,6 +1063,9 @@ const IncidentFormInner = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
+                              {validation.getError('cancel_relative_type') && (
+                                <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_relative_type')}</p>
+                              )}
                             </div>
                           )}
                         </div>
@@ -922,8 +1078,23 @@ const IncidentFormInner = () => {
                           <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
                             نوع
                           </Label>
-                          <Select onValueChange={(value) => handleInputChange('cancel_organizational_type', value)}>
-                            <SelectTrigger className="h-10">
+                          <Select 
+                            onValueChange={(value) => {
+                              handleInputChange('cancel_organizational_type', value);
+                              setTimeout(() => {
+                                validation.validateField('cancel_organizational_type', { ...formData, cancel_organizational_type: value } as IncidentFormData);
+                              }, 0);
+                            }}
+                            onOpenChange={(open) => {
+                              if (!open && formData.cancel_organizational_type) {
+                                validation.validateField('cancel_organizational_type', formData);
+                              }
+                            }}
+                          >
+                            <SelectTrigger 
+                              className={`h-10 ${validation.getError('cancel_organizational_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                              aria-invalid={!!validation.getError('cancel_organizational_type')}
+                            >
                               <SelectValue placeholder="انتخاب نوع" />
                             </SelectTrigger>
                             <SelectContent>
@@ -931,17 +1102,27 @@ const IncidentFormInner = () => {
                               <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
                             </SelectContent>
                           </Select>
+                          {validation.getError('cancel_organizational_type') && (
+                            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_organizational_type')}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
                             نوع سازمان
                           </Label>
-                          <Popover>
+                          <Popover
+                            onOpenChange={(open) => {
+                              if (!open && formData.cancel_organizational_source) {
+                                validation.validateField('cancel_organizational_source', formData);
+                              }
+                            }}
+                          >
                             <PopoverTrigger className="popover-trigger-full">
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="h-10 w-full justify-between text-right"
+                                className={`h-10 w-full justify-between text-right ${validation.getError('cancel_organizational_source') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                aria-invalid={!!validation.getError('cancel_organizational_source')}
                               >
                                 {formData.cancel_organizational_source.length > 0
                                   ? `${formData.cancel_organizational_source.length} مورد انتخاب شده`
@@ -999,6 +1180,9 @@ const IncidentFormInner = () => {
                               })}
                             </div>
                           )}
+                          {validation.getError('cancel_organizational_source') && (
+                            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('cancel_organizational_source')}</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1007,25 +1191,48 @@ const IncidentFormInner = () => {
                       {/* حادثه مرتبط / پیگیری */}
                       <div className="space-y-2">
                         <Label htmlFor="event_follow_id" className="text-sm font-medium text-right">
-                          حادثه مرتبط
+                          حادثه مرتبط *
                         </Label>
                         <EventSelector
                           selectedEventId={formData.event_follow_id}
-                          onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                          onEventSelect={(eventId) => {
+                            handleInputChange('event_follow_id', eventId);
+                            setTimeout(() => {
+                              validation.validateField('event_follow_id', { ...formData, event_follow_id: eventId } as IncidentFormData);
+                            }, 0);
+                          }}
                           operation_status={1}
                           filters={{
                             province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                             branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
                           }}
                         />
+                        {validation.getError('event_follow_id') && (
+                          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('event_follow_id')}</p>
+                        )}
                       </div>
                       {/* دلایل لغو مأموریت */}
                       <div className="space-y-2">
                         <Label htmlFor="mission_cancel_reason" className="text-sm font-medium text-right">
                           دلایل لغو مأموریت
                         </Label>
-                        <Select onValueChange={(value) => handleInputChange('mission_cancel_reason', value)}>
-                          <SelectTrigger className="h-11">
+                        <Select 
+                          onValueChange={(value) => {
+                            handleInputChange('mission_cancel_reason', value);
+                            setTimeout(() => {
+                              validation.validateField('mission_cancel_reason', { ...formData, mission_cancel_reason: value } as IncidentFormData);
+                            }, 0);
+                          }}
+                          onOpenChange={(open) => {
+                            if (!open && formData.mission_cancel_reason) {
+                              validation.validateField('mission_cancel_reason', formData);
+                            }
+                          }}
+                        >
+                          <SelectTrigger 
+                            className={`h-11 ${validation.getError('mission_cancel_reason') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            aria-invalid={!!validation.getError('mission_cancel_reason')}
+                          >
                             <SelectValue placeholder="انتخاب دلیل لغو" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1036,6 +1243,9 @@ const IncidentFormInner = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        {validation.getError('mission_cancel_reason') && (
+                          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mission_cancel_reason')}</p>
+                        )}
                       </div>
                     </div>
 
@@ -1052,6 +1262,7 @@ const IncidentFormInner = () => {
                       cityId={formData.city_id}
                       villageId={formData.village_id}
                       onLocationSelected={handleLocationSelected}
+                      formData={formData}
                     />
                     {/* بخش موقعیت */}
                     <LocationSection
@@ -1083,18 +1294,18 @@ const IncidentFormInner = () => {
                               required
                               type="text"
                               value={formData.event_people_num || ""}
-                              onChange={(e) => {
-                                setFormData({
-                                  ...formData,
-                                  event_people_num: e.target.value
-                                });
-                              }}
+                              onChange={(e) => handleInputChange('event_people_num', e.target.value)}
                               onKeyPress={(e) => {
                                 if (!/[0-9]/.test(e.key)) {
                                   e.preventDefault();
                                 }
                               }}
+                              aria-invalid={!!validation.getError('event_people_num')}
+                              className={validation.getError('event_people_num') ? 'border-red-500 focus-visible:ring-red-500' : ''}
                             />
+                            {validation.getError('event_people_num') && (
+                              <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('event_people_num')}</p>
+                            )}
                           </div>
                           {/* آیا مصدوم دارد؟ */}
                           <div className="space-y-2">
@@ -1132,6 +1343,7 @@ const IncidentFormInner = () => {
                           </div>
                           {/* تعداد مصدوم - فقط در صورت انتخاب بله */}
                           {hasInjured === 'yes' && (
+                           <>
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <Label htmlFor="injured_num">تعداد مصدوم</Label>
@@ -1165,6 +1377,25 @@ const IncidentFormInner = () => {
                                 <p className="text-red-600 text-sm">{fieldErrors.injured_num}</p>
                               )}
                             </div>
+                            {/* نوع تروما یا مصدومیت */}
+                          {hasInjured === 'yes' && formData.injured_num > 0 && (
+                            <div className="space-y-2">
+                              <Label htmlFor="trauma_type">نوع مصدومیت</Label>
+                              <Input
+                                id="trauma_type"
+                                name="trauma_type"
+                                type="text"
+                                value={formData.trauma_type || ""}
+                                onChange={(e) => {
+                                  setFormData({
+                                    ...formData,
+                                    trauma_type: e.target.value
+                                  });
+                                }}
+                              />
+                            </div>)
+                          }
+                           </>
                           )}
 
                           {/* تعداد فوتی */}
@@ -1251,23 +1482,7 @@ const IncidentFormInner = () => {
                               <p className="text-red-600 text-sm">{fieldErrors.car_num}</p>
                             )}
                           </div>
-                          {/* نوع تروما یا مصدومیت */}
-                          {hasInjured === 'yes' && formData.injured_num > 0 && (
-                            <div className="space-y-2">
-                              <Label htmlFor="trauma_type">نوع مصدومیت</Label>
-                              <Input
-                                id="trauma_type"
-                                name="trauma_type"
-                                type="text"
-                                value={formData.trauma_type || ""}
-                                onChange={(e) => {
-                                  setFormData({
-                                    ...formData,
-                                    trauma_type: e.target.value
-                                  });
-                                }}
-                              />
-                            </div>)}
+                          
                           {/* شکایت اصلی به‌جای نوع مصدومیت - فقط وقتی مصدوم دارد */}
                           {hasInjured === 'yes' && formData.injured_num == -1 && (
                             <div className="space-y-2">
@@ -1330,30 +1545,56 @@ const IncidentFormInner = () => {
                     </Label>
                     <EventSelector
                       selectedEventId={formData.event_follow_id}
-                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                      onEventSelect={(eventId) => {
+                        handleInputChange('event_follow_id', eventId);
+                        setTimeout(() => {
+                          validation.validateField('event_follow_id', { ...formData, event_follow_id: eventId } as IncidentFormData);
+                        }, 0);
+                      }}
                       operation_status={1}
                       filters={{
                         province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                         branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
                       }}
                     />
+                    {validation.getError('event_follow_id') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('event_follow_id')}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="follow_up_type" className="text-sm font-medium text-right">
                       نوع پیگیری
                     </Label>
-                    <Select onValueChange={(value) => handleInputChange('follow_up_type', value)}>
-                      <SelectTrigger className="h-11">
+                    <Select 
+                      onValueChange={(value) => {
+                        handleInputChange('follow_up_type', value);
+                        setTimeout(() => {
+                          validation.validateField('follow_up_type', { ...formData, follow_up_type: value } as IncidentFormData);
+                        }, 0);
+                      }}
+                      onOpenChange={(open) => {
+                        if (!open && formData.follow_up_type) {
+                          validation.validateField('follow_up_type', formData);
+                        }
+                      }}
+                    >
+                      <SelectTrigger 
+                        className={`h-11 ${validation.getError('follow_up_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        aria-invalid={!!validation.getError('follow_up_type')}
+                      >
                         <SelectValue placeholder="انتخاب نوع پیگیری" />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.values(FollowUpType).map((type) => (
-                          <SelectItem key={type} value={type}>
+                          <SelectItem key={type} value={String(type)}>
                             {FollowUpTypeLabels[type]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {validation.getError('follow_up_type') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('follow_up_type')}</p>
+                    )}
                   </div>
                   </div>
                   
@@ -1363,15 +1604,18 @@ const IncidentFormInner = () => {
                     </Label>
                     <Textarea
                       id="mission_result"
-
                       value={formData.mission_result || ''}
                       onChange={(e) => handleInputChange('mission_result', e.target.value)}
-                      className="min-h-[100px] resize-none text-right"
+                      aria-invalid={!!validation.getError('mission_result')}
+                      className={`min-h-[100px] resize-none text-right ${validation.getError('mission_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
+                    {validation.getError('mission_result') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mission_result')}</p>
+                    )}
                   </div>
              
                   
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="call_track_name" className="text-sm font-medium text-right">
                       نام و نام خانوادگی پیگیری کننده (غیر الزامی)
                     </Label>
@@ -1382,13 +1626,14 @@ const IncidentFormInner = () => {
                       onChange={(e) => handleInputChange('call_track_name', e.target.value)}
                       className="h-11 text-right"
                     />
-                  </div>
+                  </div> */}
 
 
                 </>
               )}
               {(formData.type_call == '4') && (
                 <>
+                  <div className="grid grid-cols-2 gap-4">
 
                   {/* حادثه مرتبط / پیگیری */}
                   <div className="space-y-2">
@@ -1397,42 +1642,112 @@ const IncidentFormInner = () => {
                     </Label>
                     <EventSelector
                       selectedEventId={formData.event_follow_id}
-                      onEventSelect={(eventId) => handleInputChange('event_follow_id', eventId)}
+                      onEventSelect={(eventId) => {
+                        handleInputChange('event_follow_id', eventId);
+                        setTimeout(() => {
+                          validation.validateField('event_follow_id', { ...formData, event_follow_id: eventId } as IncidentFormData);
+                        }, 0);
+                      }}
                       operation_status={1}
                       filters={{
                         province_id: formData.province_id ? parseInt(formData.province_id) : undefined,
                         branches_id: formData.city_id ? parseInt(formData.city_id) : undefined,
                       }}
                     />
+                    {validation.getError('event_follow_id') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('event_follow_id')}</p>
+                    )}
                   </div>
+
+                  {/* آیا اطلاعات جدید ارائه شده است؟ */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-right">آیا اطلاعات جدید ارائه شده است؟</Label>
+                    <RadioGroup
+                      dir="rtl"
+                      value={hasNewInfo}
+                      onValueChange={(value) => {
+                        setHasNewInfo(value as 'yes' | 'no');
+                        if (value === 'no') {
+                          setFormData(prev => ({ ...prev, text: '' }));
+                        }
+                      }}
+                      className="grid grid-cols-2 gap-2 text-right"
+                    >
+                      <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${hasNewInfo === 'yes'
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                        : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                        }`}>
+                        <Label htmlFor="has-new-info-yes" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                          <span className="font-medium">بله</span>
+                        </Label>
+                        <RadioGroupItem id="has-new-info-yes" value="yes" className="h-4 w-4" />
+                      </div>
+                      <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${hasNewInfo === 'no'
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                        : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+                        }`}>
+                        <Label htmlFor="has-new-info-no" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                          <span className="font-medium">خیر</span>
+                        </Label>
+                        <RadioGroupItem id="has-new-info-no" value="no" className="h-4 w-4" />
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  </div>
+
+                  {/* اطلاعات ثانویه - نمایش فقط در صورت انتخاب بله */}
+                  {hasNewInfo === 'yes' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="text" className="text-sm font-medium text-right">
+                        اطلاعات ثانویه
+                      </Label>
+                      <Textarea
+                        id="text"
+                        value={formData.text || ''}
+                        onChange={(e) => handleInputChange('text', e.target.value)}
+                        onBlur={() => handleFieldBlur('text')}
+                        aria-invalid={!!validation.getError('text')}
+                        className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      />
+                      {validation.getError('text') && (
+                        <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
               {(formData.incident_declaration_source != IncidentDeclarationSource.ORGANIZATIONAL) && formData.cancel_source != String(IncidentDeclarationSource.ORGANIZATIONAL) && (
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div className="space-y-2">
                     <Label htmlFor="caller_name" className="text-sm font-medium text-right">
-                      نام تماس گیرنده *
+                      نام تماس گیرنده 
                     </Label>
                     <Input
                       id="caller_name"
-
                       value={formData.caller_name}
                       onChange={(e) => handleInputChange('caller_name', e.target.value)}
-                      className="h-11 text-right"
+                      aria-invalid={!!validation.getError('caller_name')}
+                      className={`h-11 text-right ${validation.getError('caller_name') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
+                    {validation.getError('caller_name') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('caller_name')}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="caller_lastname" className="text-sm font-medium text-right">
-                      نام خانوادگی *
+                      نام خانوادگی 
                     </Label>
                     <Input
                       id="caller_lastname"
-
                       value={formData.caller_lastname}
                       onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
-                      className="h-11 text-right"
+                      aria-invalid={!!validation.getError('caller_lastname')}
+                      className={`h-11 text-right ${validation.getError('caller_lastname') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
+                    {validation.getError('caller_lastname') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('caller_lastname')}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1540,6 +1855,19 @@ const IncidentFormInner = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
 
+              <div className="space-y-2">
+                  <Label htmlFor="nuisanceCallerNumber" className="text-sm font-medium text-right">
+                    شماره تماس گیرنده
+                  </Label>
+                  <Input
+                    id="nuisanceCallerNumber"
+
+                    className="h-10 text-right"
+                    dir="ltr"
+                  />
+                </div>
+            
+             
 
                 <div className="space-y-2">
                   <Label htmlFor="mainComplaint" className="text-sm font-medium text-right">
@@ -1549,15 +1877,20 @@ const IncidentFormInner = () => {
                     id="mainComplaint"
                     value={formData.main_complaint}
                     onChange={(e) => handleInputChange('main_complaint', e.target.value)}
+                    onBlur={() => handleFieldBlur('main_complaint')}
                     required
-                    className="h-10 text-right"
+                    aria-invalid={!!validation.getError('main_complaint')}
+                    className={`h-10 text-right ${validation.getError('main_complaint') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
+                  {validation.getError('main_complaint') && (
+                    <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('main_complaint')}</p>
+                  )}
                 </div>
 
 
                 <div className="space-y-2">
                   <Label htmlFor="device" className="text-sm font-medium text-right">
-                    نام دستگاه
+                    نام دستگاه *
                   </Label>
                   <Select
                     onValueChange={(value) => {
@@ -1566,9 +1899,20 @@ const IncidentFormInner = () => {
                       if (value !== EmergencyServiceType.OTHER) {
                         setCustomDeviceName("");
                       }
+                      setTimeout(() => {
+                        validation.validateField('device', { ...formData, device: value } as IncidentFormData);
+                      }, 0);
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open && formData.device) {
+                        validation.validateField('device', formData);
+                      }
                     }}
                   >
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger 
+                      className={`h-11 ${validation.getError('device') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      aria-invalid={!!validation.getError('device')}
+                    >
                       <SelectValue placeholder="انتخاب دستگاه" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1584,11 +1928,14 @@ const IncidentFormInner = () => {
 
                     </SelectContent>
                   </Select>
+                  {validation.getError('device') && (
+                    <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('device')}</p>
+                  )}
                 </div>
                 {showCustomDeviceInput && (
                   <div className="mt-2">
                     <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                      نام دستگاه سفارشی
+                      نام دستگاه *
                     </Label>
                     <Input
                       id="customDevice"
@@ -1597,8 +1944,13 @@ const IncidentFormInner = () => {
                         setCustomDeviceName(e.target.value);
                         handleInputChange('custom_device_name', e.target.value);
                       }}
-                      className="h-11 mt-1"
+                      onBlur={() => handleFieldBlur('custom_device_name' as any)}
+                      aria-invalid={!!validation.getError('custom_device_name')}
+                      className={`h-11 mt-1 ${validation.getError('custom_device_name') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
+                    {validation.getError('custom_device_name') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('custom_device_name')}</p>
+                    )}
                   </div>
                 )}
                 <div className="space-y-2">
@@ -1606,10 +1958,23 @@ const IncidentFormInner = () => {
                     نتیجه تماس
                   </Label>
                   <Select
-                    onValueChange={(value) => handleInputChange('call_result', value)}
+                    onValueChange={(value) => {
+                      handleInputChange('call_result', value);
+                      setTimeout(() => {
+                        validation.validateField('call_result', { ...formData, call_result: value } as IncidentFormData);
+                      }, 0);
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open && formData.call_result) {
+                        validation.validateField('call_result', formData);
+                      }
+                    }}
                     value={formData.call_result}
                   >
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger 
+                      className={`h-11 ${validation.getError('call_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      aria-invalid={!!validation.getError('call_result')}
+                    >
                       <SelectValue placeholder="انتخاب نتیجه تماس" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1620,7 +1985,28 @@ const IncidentFormInner = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {validation.getError('call_result') && (
+                    <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('call_result')}</p>
+                  )}
                 </div>
+                <div className="space-y-2">
+                <Label htmlFor="text" className="text-sm font-medium text-right">
+                  شرح مختصر تماس
+                </Label>
+                <Textarea
+                  id="text"
+
+                  value={formData.text || ''}
+                  onChange={(e) => handleInputChange('text', e.target.value)}
+                  onBlur={() => handleFieldBlur('text')}
+                  aria-invalid={!!validation.getError('text')}
+                  className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : (formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''}`}
+                  required
+                />
+                {validation.getError('text') && (
+                  <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                )}
+              </div>
               </div>
             )}
             {formData.type_call == 6 && (
@@ -1629,7 +2015,7 @@ const IncidentFormInner = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="device" className="text-sm font-medium text-right">
-                      نام دستگاه
+                      نام دستگاه *
                     </Label>
                     <Select
                       onValueChange={(value) => {
@@ -1638,9 +2024,20 @@ const IncidentFormInner = () => {
                         if (value !== EmergencyServiceType.OTHER) {
                           setCustomDeviceName("");
                         }
+                        setTimeout(() => {
+                          validation.validateField('device', { ...formData, device: value } as IncidentFormData);
+                        }, 0);
+                      }}
+                      onOpenChange={(open) => {
+                        if (!open && formData.device) {
+                          validation.validateField('device', formData);
+                        }
                       }}
                     >
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger 
+                        className={`h-11 ${validation.getError('device') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        aria-invalid={!!validation.getError('device')}
+                      >
                         <SelectValue placeholder="انتخاب دستگاه" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1652,11 +2049,14 @@ const IncidentFormInner = () => {
 
                       </SelectContent>
                     </Select>
+                    {validation.getError('device') && (
+                      <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('device')}</p>
+                    )}
 
                     {showCustomDeviceInput && (
                       <div className="mt-2">
                         <Label htmlFor="customDevice" className="text-sm font-medium text-right">
-                          نام دستگاه سفارشی
+                          نام دستگاه *
                         </Label>
                         <Input
                           id="customDevice"
@@ -1665,8 +2065,13 @@ const IncidentFormInner = () => {
                             setCustomDeviceName(e.target.value);
                             handleInputChange('custom_device_name', e.target.value);
                           }}
-                          className="h-11 mt-1"
+                          onBlur={() => handleFieldBlur('custom_device_name' as any)}
+                          aria-invalid={!!validation.getError('custom_device_name')}
+                          className={`h-11 mt-1 ${validation.getError('custom_device_name') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         />
+                        {validation.getError('custom_device_name') && (
+                          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('custom_device_name')}</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1674,22 +2079,40 @@ const IncidentFormInner = () => {
 
 
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label htmlFor="nuisanceCallerNumber" className="text-sm font-medium text-right">
+                    شماره تماس گیرنده
+                  </Label>
+                  <Input
+                    id="nuisanceCallerNumber"
+
+                    className="h-10 text-right"
+                    dir="ltr"
+                  />
+                </div>
+              <div className="space-y-2">
+                <Label htmlFor="text" className="text-sm font-medium text-right">
+                  شرح مختصر تماس
+                </Label>
+                <Textarea
+                  id="text"
+
+                  value={formData.text || ''}
+                  onChange={(e) => handleInputChange('text', e.target.value)}
+                  onBlur={() => handleFieldBlur('text')}
+                  aria-invalid={!!validation.getError('text')}
+                  className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : (formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''}`}
+                  required
+                />
+                {validation.getError('text') && (
+                  <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
+                )}
+              </div>
+             </div>
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="text" className="text-sm font-medium text-right">
-                شرح مختصر تماس
-              </Label>
-              <Textarea
-                id="text"
-
-                value={formData.text || ''}
-                onChange={(e) => handleInputChange('text', e.target.value)}
-                className={`min-h-[100px] resize-none text-right ${(formData.text || '') === '' ? 'border-red-300 focus:border-red-500' : ''
-                  }`}
-                required
-              />
-            </div>
+             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="callerName" className="text-sm font-medium text-right">
@@ -1715,17 +2138,7 @@ const IncidentFormInner = () => {
                   className="h-10 text-right"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nuisanceCallerNumber" className="text-sm font-medium text-right">
-                  شماره تماس گیرنده
-                </Label>
-                <Input
-                  id="nuisanceCallerNumber"
-
-                  className="h-10 text-right"
-                  dir="ltr"
-                />
-              </div>
+            
 
             </div>
 
@@ -1804,6 +2217,7 @@ const IncidentFormInner = () => {
             descriptionFieldTitle="شرح مختصر تماس"
             formData={formData}
             onInputChange={handleInputChange}
+            onMobileStatsChange={onMobileStatsChange}
           />
         )}
 
@@ -1820,12 +2234,24 @@ const IncidentFormInner = () => {
           </div>
         )}
 
+        {/* Validation errors from validation store */}
+        {Object.keys(validation.getAllErrors()).length > 0 && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h4 className="font-semibold text-red-700 mb-2 text-right">خطاهای اعتبارسنجی فرم:</h4>
+            <ul className="list-disc list-inside space-y-1 text-right">
+              {Object.entries(validation.getAllErrors()).map(([field, error]) => (
+                <li key={field} className="text-red-600 text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* دکمه‌های عملیات */}
         <div className="flex gap-3 pt-4">
           {/* Draft save button - only show when contact_type is 1 and help_triage_result is 1 */}
-          {formData.contact_type == '1' && formData.help_triage_result == '1' && (
+          {formData.contact_type == '1' && formData.help_triage_result == '1' && formData.type_call == '5' && (
             <Button
-              className="h-12 bg-blue-600 hover:bg-blue-700 text-white"
+              className="h-12 px-4 bg-blue-600 hover:bg-blue-700 text-white fixed bottom-4 left-1/2 -translate-x-1/2 transform z-50 shadow-lg rounded-full"
               onClick={handleSaveDraft}
               disabled={isSavingDraft || isSubmitting}
               variant="outline"
@@ -1847,7 +2273,7 @@ const IncidentFormInner = () => {
           {formData.contact_type == '1' && (
             <Button
               className="flex-1 h-12 bg-emergency hover:bg-emergency/90 text-emergency-foreground"
-              onClick={() => handleSubmit()}
+              onClick={() => handleSubmit(!((formData.type_call == '5' && formData.help_triage_result != '1') || (formData.type_call == '2' && formData.follow_up_type != String(FollowUpType.TEAM_PRESENCE))))}
               disabled={isSubmitting || isSavingDraft}
             >
               {isSubmitting ? (
@@ -1858,7 +2284,14 @@ const IncidentFormInner = () => {
               ) : (
                 <>
                   <Send className="h-4 w-4 ml-2" />
-                  ثبت و ارجاع به دیسپچ
+                  {(() => {
+                    const isOperationalIncident = formData.type_call == '5';
+                    const isFollowUp = formData.type_call == '2';
+                    const needsNoDispatchForIncident = isOperationalIncident && formData.help_triage_result != '1';
+                    const needsNoDispatchForFollowUp = isFollowUp && formData.follow_up_type != String(FollowUpType.TEAM_PRESENCE);
+                    const saveWithoutDispatch = needsNoDispatchForIncident || needsNoDispatchForFollowUp;
+                    return saveWithoutDispatch ? 'ثبت بدون ارجاع به دیسپچ' : 'ثبت و ارجاع به دیسپچ';
+                  })()}
                 </>
               )}
             </Button>
@@ -1907,9 +2340,28 @@ const IncidentFormInner = () => {
   );
 };
 
-export const IncidentForm = () => (
+interface IncidentFormProps {
+  onMobileStatsChange?: (stats: {
+    number: string;
+    total: number;
+    completed: number;
+    missed: number;
+    ongoing: number;
+    history: Array<{
+      id: string;
+      time: string;
+      duration: string;
+      type: 'incoming' | 'outgoing';
+      number: string;
+      status: 'completed' | 'missed' | 'ongoing';
+      location?: string;
+    }>;
+  } | null) => void;
+}
+
+export const IncidentForm = ({ onMobileStatsChange }: IncidentFormProps = {}) => (
   <ValidationProvider>
-    <IncidentFormInner />
+    <IncidentFormInner onMobileStatsChange={onMobileStatsChange} />
   </ValidationProvider>
 );
 export default IncidentForm;

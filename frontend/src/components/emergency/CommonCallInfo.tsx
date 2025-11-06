@@ -7,9 +7,10 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import { Calendar, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "../ui/button";
 import { useValidationStore } from '@/stores/validationStore';
+import { incidentService } from '@/services/incidentService';
 
 interface CommonCallInfoProps {
   formData: {
@@ -22,22 +23,101 @@ interface CommonCallInfoProps {
   };
   descriptionFieldTitle: string;
   onInputChange: (field: string, value: string) => void;
+  onMobileStatsChange?: (stats: {
+    number: string;
+    total: number;
+    completed: number;
+    missed: number;
+    ongoing: number;
+    history: Array<{
+      id: string;
+      time: string;
+      duration: string;
+      type: 'incoming' | 'outgoing';
+      number: string;
+      status: 'completed' | 'missed' | 'ongoing';
+      location?: string;
+    }>;
+  } | null) => void;
 }
 
-export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange }: CommonCallInfoProps) => {
+export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange, onMobileStatsChange }: CommonCallInfoProps) => {
   const validation = useValidationStore();
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  const [loadingStats, setLoadingStats] = useState(false);
+  const MIN_TEXT_CHARS = 20;
+
+  // Validate phone number (11 digits or 8 digits)
+  const isValidPhoneNumber = useCallback((phone: string): boolean => {
+    if (!phone || phone.trim() === '') {
+      return false;
+    }
+    // Remove any non-digit characters
+    const digitsOnly = phone.replace(/\D/g, '');
+    // Check if it's 11 digits or 8 digits
+    return digitsOnly.length === 11 || digitsOnly.length === 8;
+  }, []);
+
+  // Fetch contact stats when mobile changes
+  const fetchContactStats = useCallback(async (mobile: string) => {
+    if (!mobile || mobile.trim() === '') {
+      onMobileStatsChange?.(null);
+      return;
+    }
+
+    // Validate phone number before calling API
+    if (!isValidPhoneNumber(mobile)) {
+      onMobileStatsChange?.(null);
+      return;
+    }
+
+    // Extract only digits for API call
+    const digitsOnly = mobile.replace(/\D/g, '');
+
+    setLoadingStats(true);
+    try {
+      const response = await incidentService.getContactStatsByMobile(digitsOnly);
+      if (response.success && response.data) {
+        onMobileStatsChange?.(response.data);
+      } else {
+        onMobileStatsChange?.(null);
+      }
+    } catch (error) {
+      console.error('Error fetching contact stats:', error);
+      onMobileStatsChange?.(null);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [onMobileStatsChange, isValidPhoneNumber]);
 
   useEffect(() => {
     // Set current date and time when component mounts
     const now = new Date();
     setCurrentDateTime(now);
 
-    // Always initialize with current date/time if not already set
-    if (!formData.call_time_info) {
-      onInputChange('call_time_info', now.toString());
+    // Initialize with current date/time if not already set
+    // Use setTimeout to ensure this runs after render cycle to avoid React warnings
+    if (!formData.call_time_info || formData.call_time_info.trim() === '') {
+      setTimeout(() => {
+        onInputChange('call_time_info', now.toString());
+      }, 0);
     }
+  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch stats when mobile changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.mobile && isValidPhoneNumber(formData.mobile)) {
+        fetchContactStats(formData.mobile);
+      } else {
+        onMobileStatsChange?.(null);
+      }
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.mobile, fetchContactStats, onMobileStatsChange, isValidPhoneNumber]);
 
   return (
     <div className="mt-3 space-y-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-r-4 border-red-500">
@@ -64,11 +144,12 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange 
           </Label>
           <div className="relative">
             <DatePicker
+              key={formData.call_time_info || 'default'}
               calendar={persian}
               locale={persian_fa}
               plugins={[<TimePicker position="bottom" key="time-picker" />]}
               format="YYYY/MM/DD HH:mm:ss"
-              value={formData.call_time_info || currentDateTime}
+              value={formData.call_time_info ? new Date(formData.call_time_info) : currentDateTime}
               onChange={(value) => onInputChange('call_time_info', value?.toString() || '')}
               style={{
                 width: "100%",
@@ -103,6 +184,7 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange 
           value={formData.mobile}
           className="h-10 text-right"
           dir="ltr"
+          disabled={loadingStats}
         />
       </div>
       {/* زمان وقوع حادثه */}
@@ -155,13 +237,21 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange 
           </Label>
           <Textarea
             id="text"
-
+            minLength={MIN_TEXT_CHARS}
             value={formData.text || ''}
             onChange={(e) => onInputChange('text', e.target.value)}
             onBlur={() => validation.validateField('text' as any, formData as any)}
             aria-invalid={!!validation.getError('text')}
             className={`min-h-[100px] resize-none text-right ${validation.getError('text') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
           />
+          <div className="flex items-center justify-between text-xs mt-1">
+            <div className={`${(formData.text?.length || 0) < MIN_TEXT_CHARS ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'} text-right`}>
+              {`حداقل ${MIN_TEXT_CHARS} کاراکتر`}
+            </div>
+            <div className={`${(formData.text?.length || 0) < MIN_TEXT_CHARS ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'} font-mono`} dir="ltr">
+              {(formData.text?.length || 0)} / {MIN_TEXT_CHARS}
+            </div>
+          </div>
           {validation.getError('text') && (
             <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('text')}</p>
           )}

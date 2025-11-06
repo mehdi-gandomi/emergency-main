@@ -107,17 +107,31 @@ export const VictimsList = ({ victims, onUpdate }: VictimsListProps) => {
               <RadioGroup
                 value={victim.gender}
                 onValueChange={(value) => handleUpdateVictim(index, 'gender', value)}
-                className="flex flex-col space-y-2"
+                className="flex flex-row gap-2 justify-start"
               >
-                <div className="flex items-center space-x-2 space-x-reverse">
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
+                    victim.gender === 'مرد'
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                      : 'border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-700/30'
+                  }`}
+                  onClick={() => handleUpdateVictim(index, 'gender', 'مرد')}
+                >
                   <RadioGroupItem value="مرد" id={`gender-male-${index}`} />
-                  <Label htmlFor={`gender-male-${index}`} className="text-sm cursor-pointer">
+                  <Label htmlFor={`gender-male-${index}`} className="text-sm cursor-pointer select-none">
                     👨 مرد
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
+                    victim.gender === 'زن'
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                      : 'border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-700/30'
+                  }`}
+                  onClick={() => handleUpdateVictim(index, 'gender', 'زن')}
+                >
                   <RadioGroupItem value="زن" id={`gender-female-${index}`} />
-                  <Label htmlFor={`gender-female-${index}`} className="text-sm cursor-pointer">
+                  <Label htmlFor={`gender-female-${index}`} className="text-sm cursor-pointer select-none">
                     👩 زن
                   </Label>
                 </div>

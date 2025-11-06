@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { 
   History, 
   MapPin, 
@@ -28,8 +29,9 @@ import {
   WifiOff,
   Bell
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useConnectionStatus } from "@/hooks/use-connection-status";
+import { incidentService } from "@/services/incidentService";
 
 interface CallHistoryItem {
   id: string;
@@ -199,10 +201,115 @@ const mockProtocols: ProtocolItem[] = [
   },
 ];
 
-export const SideCards = () => {
+interface MobileStats {
+  number: string;
+  total: number;
+  completed: number;
+  missed: number;
+  ongoing: number;
+  history: CallHistoryItem[];
+}
+
+interface SideCardsProps {
+  mobileStats?: MobileStats | null;
+}
+
+export const SideCards = ({ mobileStats }: SideCardsProps = {}) => {
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolItem | null>(null);
   const { isOnline, isReconnecting, lastOnlineTime, connectionLostTime } = useConnectionStatus();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
+  const [callHistory, setCallHistory] = useState<CallHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const numberStats = useMemo(() => {
+    // Use real call history if available, otherwise use mock data
+    const historyToUse = callHistory.length > 0 ? callHistory : mockCallHistory;
+    const statsMap: Record<string, { total: number; completed: number; missed: number; ongoing: number }> = {};
+    for (const c of historyToUse) {
+      if (!statsMap[c.number]) {
+        statsMap[c.number] = { total: 0, completed: 0, missed: 0, ongoing: 0 };
+      }
+      statsMap[c.number].total += 1;
+      if (c.status === 'completed') statsMap[c.number].completed += 1;
+      if (c.status === 'missed') statsMap[c.number].missed += 1;
+      if (c.status === 'ongoing') statsMap[c.number].ongoing += 1;
+    }
+    return Object.entries(statsMap).map(([number, s]) => ({ number, ...s }));
+  }, [callHistory]);
+
+  // Set selectedNumber to mobile from formData (mobileStats)
+  useEffect(() => {
+    if (mobileStats && mobileStats.number) {
+      setSelectedNumber(mobileStats.number);
+    } else {
+      // Fallback to mock data if no mobileStats
+      const historyToUse = callHistory.length > 0 ? callHistory : mockCallHistory;
+      if (!selectedNumber && historyToUse.length > 0) {
+        setSelectedNumber(historyToUse[0].number);
+      }
+    }
+  }, [mobileStats, selectedNumber, callHistory]);
+
+  const singleStats = useMemo(() => {
+    // Use mobileStats from API if available, otherwise fall back to mock data
+    if (mobileStats) {
+      const num = selectedNumber || mobileStats.number;
+      const filtered = num && mobileStats.history ? mobileStats.history.filter((c) => c.number === num) : mobileStats.history || [];
+      return {
+        number: num || mobileStats.number || '',
+        total: mobileStats.total,
+        completed: mobileStats.completed,
+        missed: mobileStats.missed,
+        ongoing: mobileStats.ongoing,
+      };
+    }
+    
+    // Fallback to mock data
+    const num = selectedNumber;
+    const filtered = num ? mockCallHistory.filter((c) => c.number === num) : [];
+    return {
+      number: num || '',
+      total: filtered.length,
+      completed: filtered.filter((c) => c.status === 'completed').length,
+      missed: filtered.filter((c) => c.status === 'missed').length,
+      ongoing: filtered.filter((c) => c.status === 'ongoing').length,
+    };
+  }, [selectedNumber, mobileStats]);
+
+
+  // Fetch call history when mobileStats changes
+  useEffect(() => {
+    const fetchCallHistory = async () => {
+      if (mobileStats && mobileStats.number) {
+        setLoadingHistory(true);
+        try {
+          const response = await incidentService.getCallsByMobile(mobileStats.number);
+          if (response.success && response.data) {
+            setCallHistory(response.data);
+          } else {
+            setCallHistory(mobileStats.history || []);
+          }
+        } catch (error) {
+          console.error('Error fetching call history:', error);
+          setCallHistory(mobileStats.history || []);
+        } finally {
+          setLoadingHistory(false);
+        }
+      } else {
+        // Clear history when no mobile number
+        setCallHistory([]);
+      }
+    };
+
+    fetchCallHistory();
+  }, [mobileStats]);
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -275,99 +382,104 @@ export const SideCards = () => {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-3" dir="rtl">
       {/* Connection Status Card */}
       <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/20 shadow-2xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-3 text-lg">
-            <div className={`p-2 rounded-lg ${isOnline ? 'bg-linear-to-r from-emerald-500 to-emerald-600' : 'bg-linear-to-r from-red-500 to-red-600'}`}>
-              {isOnline ? <Wifi className="h-5 w-5 text-white" /> : <WifiOff className="h-5 w-5 text-white" />}
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className={`p-1.5 rounded-lg ${isOnline ? 'bg-linear-to-r from-emerald-500 to-emerald-600' : 'bg-linear-to-r from-red-500 to-red-600'}`}>
+              {isOnline ? <Wifi className="h-4 w-4 text-white" /> : <WifiOff className="h-4 w-4 text-white" />}
             </div>
-            <div>
-              <span>وضعیت اتصال</span>
-              <div className="text-sm font-normal text-slate-500 dark:text-slate-400">
-                نظارت بر اتصال اینترنت
-              </div>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span>وضعیت اتصال:</span>
-            <Badge variant={isOnline ? "default" : "destructive"}>
+            <span>وضعیت اتصال</span>
+            <Badge variant={isOnline ? "default" : "destructive"} className="text-xs">
               {isOnline ? "آنلاین" : "آفلاین"}
             </Badge>
-          </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Tabs defaultValue="status" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 h-8 text-xs">
+              <TabsTrigger value="status">وضعیت</TabsTrigger>
+              <TabsTrigger value="notifications">اعلان‌ها</TabsTrigger>
+              <TabsTrigger value="alerts">هشدار</TabsTrigger>
+              <TabsTrigger value="info">راهنما</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="status" className="mt-2 space-y-2">
+              {isReconnecting && (
+                <div className="flex items-center gap-2 text-amber-600 text-xs">
+                  <Activity className="w-3.5 h-3.5 animate-spin" />
+                  <span>در حال اتصال مجدد...</span>
+                </div>
+              )}
+              {lastOnlineTime && (
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  آخرین اتصال: {lastOnlineTime.toLocaleTimeString('fa-IR')}
+                </div>
+              )}
+              {connectionLostTime && (
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  قطع اتصال: {connectionLostTime.toLocaleTimeString('fa-IR')}
+                </div>
+              )}
+              {!isReconnecting && !lastOnlineTime && !connectionLostTime && (
+                <div className="text-xs text-gray-500 text-center py-2">
+                  هیچ اطلاعاتی موجود نیست
+                </div>
+              )}
+            </TabsContent>
 
-          {isReconnecting && (
-            <div className="flex items-center gap-2 text-amber-600">
-              <Activity className="w-4 h-4 animate-spin" />
-              <span className="text-sm">در حال اتصال مجدد...</span>
-            </div>
-          )}
+            <TabsContent value="notifications" className="mt-2 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span>وضعیت:</span>
+                <Badge variant={notificationPermission === 'granted' ? 'default' : 'secondary'} className="text-xs">
+                  {notificationPermission === 'granted' ? 'فعال' : 'غیرفعال'}
+                </Badge>
+              </div>
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={requestNotificationPermission}
+                  disabled={notificationPermission === 'granted'}
+                  className="text-xs h-7 flex-1"
+                >
+                  <Bell className="w-3 h-3 mr-1" />
+                  اجازه
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={testNotification}
+                  disabled={notificationPermission !== 'granted'}
+                  className="text-xs h-7 flex-1"
+                >
+                  تست
+                </Button>
+              </div>
+            </TabsContent>
 
-          {lastOnlineTime && (
-            <div className="text-sm text-gray-600">
-              آخرین اتصال: {lastOnlineTime.toLocaleTimeString('fa-IR')}
-            </div>
-          )}
-
-          {connectionLostTime && (
-            <div className="text-sm text-gray-600">
-              قطع اتصال: {connectionLostTime.toLocaleTimeString('fa-IR')}
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">اعلان‌ها:</span>
-              <Badge variant={notificationPermission === 'granted' ? 'default' : 'secondary'}>
-                {notificationPermission === 'granted' ? 'فعال' : 'غیرفعال'}
-              </Badge>
-            </div>
-
-            <div className="flex gap-2">
+            <TabsContent value="alerts" className="mt-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={requestNotificationPermission}
-                disabled={notificationPermission === 'granted'}
-                className="text-xs"
+                onClick={testAudioAlert}
+                className="w-full text-xs h-8"
               >
-                <Bell className="w-3 h-3 mr-1" />
-                اجازه
+                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+                تست هشدار صوتی
               </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={testNotification}
-                disabled={notificationPermission !== 'granted'}
-                className="text-xs"
-              >
-                تست
-              </Button>
-            </div>
-          </div>
+            </TabsContent>
 
-          <div className="space-y-2">
-            <div className="text-sm font-medium">هشدار صوتی:</div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={testAudioAlert}
-              className="w-full text-xs"
-            >
-              تست هشدار صوتی
-            </Button>
-          </div>
-
-          <div className="text-xs text-gray-500 pt-2 border-t">
-            <p>برای تست قطع اتصال:</p>
-            <p>1. اینترنت را قطع کنید</p>
-            <p>2. هشدار و صدا را مشاهده کنید</p>
-            <p>3. اتصال مجدد برای بروزرسانی</p>
-          </div>
+            <TabsContent value="info" className="mt-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                <p className="font-medium mb-1">تست قطع اتصال:</p>
+                <p>1. اینترنت را قطع کنید</p>
+                <p>2. هشدار و صدا را مشاهده کنید</p>
+                <p>3. اتصال مجدد برای بروزرسانی</p>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -387,50 +499,105 @@ export const SideCards = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-80">
-            <div className="space-y-3">
-              {mockCallHistory.map((call) => (
-                <div key={call.id} className="group p-4 rounded-xl bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-600/50 border border-slate-200/50 dark:border-slate-600/50 hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${
-                        call.status === 'completed' ? 'bg-emerald-500' :
-                        call.status === 'missed' ? 'bg-red-500' : 'bg-blue-500'
-                      }`}>
-                        <Phone className="h-3 w-3 text-white" />
-                      </div>
-                      <div className="text-sm">
-                        <div className="font-medium text-slate-700 dark:text-slate-200">
-                          {call.time}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          مدت: {call.duration}
-                        </div>
-                      </div>
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      className={`${getStatusColor(call.status)} text-xs font-medium`}
-                    >
-                      {call.status === 'completed' ? 'تکمیل شده' : 
-                       call.status === 'missed' ? 'از دست رفته' : 'در جریان'}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm font-mono text-slate-600 dark:text-slate-300" dir="ltr">
-                      {call.number}
-                    </div>
-                    {call.location && (
-                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <MapPin className="h-3 w-3" />
-                        {call.location}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                آمار شماره {(mobileStats?.number || singleStats.number) && (
+                  <span className="font-mono text-slate-700 dark:text-slate-200" dir="ltr"> {mobileStats?.number || singleStats.number}</span>
+                )}
+              </div>
             </div>
-          </ScrollArea>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-600/50 border border-slate-200/50 dark:border-slate-600/50">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">کل تماس‌ها</div>
+                  <Phone className="h-3.5 w-3.5 text-blue-500" />
+                </div>
+                <div className="text-lg font-bold text-slate-800 dark:text-white">{singleStats.total}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-linear-to-br from-emerald-50 to-emerald-100/40 dark:from-emerald-900/20 dark:to-emerald-800/10 border border-emerald-200/50 dark:border-emerald-800/50">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400">غیر اضطراری</div>
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                </div>
+                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{singleStats.completed}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-linear-to-br from-red-50 to-red-100/40 dark:from-red-900/20 dark:to-red-800/10 border border-red-200/50 dark:border-red-800/50">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-red-700 dark:text-red-400">اضطراری</div>
+                  <XCircle className="h-3.5 w-3.5 text-red-600" />
+                </div>
+                <div className="text-lg font-bold text-red-700 dark:text-red-400">{singleStats.missed}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-linear-to-br from-blue-50 to-blue-100/40 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200/50 dark:border-blue-800/50">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-blue-700 dark:text-blue-400">ناتمام</div>
+                  <Activity className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{singleStats.ongoing}</div>
+              </div>
+            </div>
+            <div className="pt-1">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs"
+                    onClick={() => singleStats.number && setSelectedNumber(singleStats.number)}
+                  >
+                    مشاهده جزئیات تماس‌ها
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl" dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">فهرست تماس‌های شماره <span dir="ltr" className="font-mono">{selectedNumber || singleStats.number}</span></DialogTitle>
+                  </DialogHeader>
+                  <ScrollArea className="h-80">
+                    <div className="space-y-2">
+                      {loadingHistory ? (
+                        <div className="text-center py-8 text-sm text-slate-500 dark:text-slate-400">
+                          در حال بارگذاری...
+                        </div>
+                      ) : (callHistory.length > 0 ? callHistory : mockCallHistory)
+                        .filter((item) => item.number === (selectedNumber || singleStats.number))
+                        .map((item) => (
+                        <div key={item.id} className="p-3 rounded-lg bg-white/60 dark:bg-slate-700/40 border border-slate-200/60 dark:border-slate-600/60">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1.5 rounded-md ${
+                                item.status === 'completed' ? 'bg-emerald-500' :
+                                item.status === 'missed' ? 'bg-red-500' : 'bg-blue-500'
+                              }`}>
+                                <Phone className="h-3 w-3 text-white" />
+                              </div>
+                              <div className="text-xs text-slate-700 dark:text-slate-200">
+                                <span className="ml-2">زمان:</span>
+                                {item.time}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className={`${getStatusColor(item.status)} text-[10px]`}>
+                              {item.status === 'completed' ? 'تکمیل شده' : 
+                               item.status === 'missed' ? 'از دست رفته' : 'در جریان'}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                            <div>مدت: {item.duration}</div>
+                            {item.location && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{item.location}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -678,7 +845,7 @@ export const SideCards = () => {
           </ScrollArea>
 
           {/* Quick Access Footer */}
-          <div className="mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-600/50">
+          {/* <div className="mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-600/50">
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" size="sm" className="text-xs h-8 bg-white/50 hover:bg-white/80 dark:bg-slate-700/50 dark:hover:bg-slate-600/80 backdrop-blur-sm">
                 <Zap className="h-3 w-3 mr-1" />
@@ -689,7 +856,7 @@ export const SideCards = () => {
                 تیم واکنش
               </Button>
             </div>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

@@ -92,7 +92,7 @@ class ContactController extends Controller
             'km_axis' => ['nullable','string','max:70'],
             'nech_name' => ['nullable','string','max:100'],
             'parish_name' => ['nullable','string','max:100'],
-            'car_num' => ['nullable','string','max:10'],
+            'car_num' => ['nullable','max:10'],
             'plaque' => ['nullable','string','max:20'],
             'fgh_name' => ['nullable','string','max:255'],
             'event_people_num' => ['nullable','integer'],
@@ -128,9 +128,10 @@ class ContactController extends Controller
             'event_people_num' => ['nullable','integer'],
             'time_of_incident' => ['nullable','string'],
             // 'call_time_info' => ['nullable','string'],
-            'incident_source_location' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
+            'incident_source_location' => ['nullable','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'incident_declaration_source' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Enums\IncidentDeclarationSource::getAllValues())],
             'organizational_source' => ['nullable','array'],
+            'custom_organizational_source' => ['nullable','string','max:255'],
             'public_source' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\PublicSource::getAllValues())],
             // 'relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'injured_num' => ['nullable','integer'],
@@ -145,7 +146,7 @@ class ContactController extends Controller
             'mission_cancel_reason' => ['nullable','string'],
             'cancel_source' => ['nullable','string','max:100'],
             'cancel_phone_number' => ['nullable','string','max:15'],
-            'cancel_public_source' => ['nullable','string','max:100'],
+            'cancel_public_source' => ['nullable','max:100'],
             'cancel_relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'cancel_incident_declaration_source' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'cancel_organizational_source' => ['nullable','array'],
@@ -167,12 +168,12 @@ class ContactController extends Controller
             'organizational_type' => ['nullable','string','max:100'],
             'relative_type_detail' => ['nullable','string','max:100'],
             'address' => ['nullable','string','max:255'],
-            'incident_source_location' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
+            'incident_source_location' => ['nullable','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'incident_declaration_source' => ['nullable','max:255'],
-            'public_source' => ['nullable','string','max:255'],
+            'public_source' => ['nullable','max:255'],
             'cancel_source' => ['nullable','string','max:100'],
             'cancel_phone_number' => ['nullable','string','max:15'],
-            'cancel_public_source' => ['nullable','string','max:100'],
+            'cancel_public_source' => ['nullable','max:100'],
             'cancel_relative_type' => ['nullable','string','max:100'],
             'cancel_organizational_source' => ['nullable','array'],
             'cancel_organizational_type' => ['nullable','string','max:100'],
@@ -384,10 +385,11 @@ class ContactController extends Controller
             'longitude' => ['nullable','numeric'],
             'priority' => ['nullable','string','max:10'],
             'time_of_incident' => ['nullable','string'],
-            'incident_source_location' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
+            'incident_source_location' => ['nullable','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'incident_declaration_source' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Enums\IncidentDeclarationSource::getAllValues())],
             'organizational_source' => ['nullable','array'],
-            'public_source' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\PublicSource::getAllValues())],
+            'custom_organizational_source' => ['nullable','string','max:255'],
+            'public_source' => ['nullable',\Illuminate\Validation\Rule::in(\App\Enums\PublicSource::getAllValues())],
             'number_of_vehicles' => ['nullable','integer'],
             'number_of_trapped' => ['nullable','integer'],
             'number_of_houses' => ['nullable','integer'],
@@ -399,7 +401,7 @@ class ContactController extends Controller
             'mission_cancel_reason' => ['nullable','string'],
             'cancel_source' => ['nullable','string','max:100'],
             'cancel_phone_number' => ['nullable','string','max:15'],
-            'cancel_public_source' => ['nullable','string','max:100'],
+            'cancel_public_source' => ['nullable','max:100'],
             'cancel_relative_type' => ['nullable','string',\Illuminate\Validation\Rule::in(\App\Enums\RelativeType::getAllValues())],
             'cancel_incident_declaration_source' => ['nullable','string','in:' . implode(',', \App\Enums\IncidentSourceLocation::values())],
             'cancel_organizational_source' => ['nullable','array'],
@@ -530,5 +532,164 @@ class ContactController extends Controller
     {
         $contact->delete();
         return response()->json(['message' => 'Deleted']);
+    }
+
+    /**
+     * Get contact statistics filtered by mobile number
+     * Returns stats and history for contacts with the given mobile number
+     */
+    public function getStatsByMobile(Request $request)
+    {
+        $mobile = $request->input('mobile');
+        
+        if (empty($mobile)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'number' => '',
+                    'total' => 0,
+                    'completed' => 0,
+                    'missed' => 0,
+                    'ongoing' => 0,
+                    'history' => []
+                ]
+            ], 200, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        // Get all contacts with this mobile number
+        $contacts = Contact::where('mobile', $mobile)
+            ->with('details')
+            ->orderBy('date_call', 'desc')
+            ->orderBy('time_call', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // Calculate statistics
+        $total = $contacts->count();
+        $completed = 0; // Non-emergency (administrative, guidance, disturbing)
+        $missed = 0;    // Emergency (incidents: 4, 5, 6, 2)
+        $ongoing = 0;   // Incomplete (type_call = 3)
+
+        $history = [];
+        
+        foreach ($contacts as $contact) {
+            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall 
+                ? $contact->type_call->value 
+                : $contact->type_call;
+            
+            // Categorize based on type_call
+            if ($typeCall == 3) {
+                $ongoing++;
+                $status = 'ongoing';
+            } elseif (in_array($typeCall, [4, 5, 6, 2])) {
+                // Incident-related calls (emergency)
+                $missed++;
+                $status = 'missed';
+            } else {
+                // Administrative, guidance, disturbing (non-emergency)
+                $completed++;
+                $status = 'completed';
+            }
+
+            // Build history item
+            $historyItem = [
+                'id' => (string)$contact->id,
+                'time' => $contact->time_call ?: '00:00',
+                'duration' => '00:00', // Duration not stored in contacts table
+                'type' => 'incoming',
+                'number' => $contact->mobile ?: '',
+                'status' => $status,
+            ];
+
+            // Add location if available
+            if ($contact->details && $contact->details->address) {
+                $historyItem['location'] = $contact->details->address;
+            }
+
+            $history[] = $historyItem;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'number' => $mobile,
+                'total' => $total,
+                'completed' => $completed,
+                'missed' => $missed,
+                'ongoing' => $ongoing,
+                'history' => $history
+            ]
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Get all calls (history) for a specific mobile number
+     * Returns full call history without statistics
+     */
+    public function getCallsByMobile(Request $request)
+    {
+        $mobile = $request->input('mobile');
+        
+        if (empty($mobile)) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ], 200, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        // Get all contacts with this mobile number
+        $contacts = Contact::where('mobile', $mobile)
+            ->with('details')
+            ->orderBy('date_call', 'desc')
+            ->orderBy('time_call', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $history = [];
+        
+        foreach ($contacts as $contact) {
+            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall 
+                ? $contact->type_call->value 
+                : $contact->type_call;
+            
+            // Categorize based on type_call
+            $status = 'completed'; // default
+            if ($typeCall == 3) {
+                $status = 'ongoing';
+            } elseif (in_array($typeCall, [4, 5, 6, 2])) {
+                // Incident-related calls (emergency)
+                $status = 'missed';
+            } else {
+                // Administrative, guidance, disturbing (non-emergency)
+                $status = 'completed';
+            }
+
+            // Build history item
+            $historyItem = [
+                'id' => (string)$contact->id,
+                'time' => $contact->time_call ?: '00:00',
+                'duration' => '00:00', // Duration not stored in contacts table
+                'type' => 'incoming',
+                'number' => $contact->mobile ?: '',
+                'status' => $status,
+            ];
+
+            // Add location if available
+            if ($contact->details && $contact->details->address) {
+                $historyItem['location'] = $contact->details->address;
+            }
+
+            // Add date if available
+            if ($contact->date_call) {
+                $historyItem['date'] = $contact->date_call;
+            }
+
+            $history[] = $historyItem;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $history
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

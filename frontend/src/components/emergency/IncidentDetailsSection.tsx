@@ -15,6 +15,7 @@ import { IncidentTypeFields } from "./IncidentTypeFields";
 import { VictimsList } from "./VictimsList";
 import { OperationalRecommendations } from "./OperationalRecommendations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useValidationStore } from '@/stores/validationStore';
 
 interface IncidentDetailsSectionProps {
   formData: IncidentFormData;
@@ -29,6 +30,8 @@ export const IncidentDetailsSection = ({
   onMultiSelectChange,
   onVictimsUpdate 
 }: IncidentDetailsSectionProps) => {
+  const validation = useValidationStore();
+  
   // Only render if conditions are met
   if (formData.type_call !== '5') {
     return null;
@@ -47,7 +50,10 @@ export const IncidentDetailsSection = ({
             value={formData.help_triage_result} 
             onValueChange={(value) => onInputChange('help_triage_result', value)}
           >
-            <SelectTrigger className="h-11 text-right">
+            <SelectTrigger 
+              className={`h-11 text-right ${validation.getError('help_triage_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              aria-invalid={!!validation.getError('help_triage_result')}
+            >
               <SelectValue placeholder="انتخاب نتیجه تریاژ" />
             </SelectTrigger>
             <SelectContent>
@@ -55,6 +61,9 @@ export const IncidentDetailsSection = ({
               <SelectItem value="2">راهنمایی و هدایت توسط کارشناس</SelectItem>
             </SelectContent>
           </Select>
+          {validation.getError('help_triage_result') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('help_triage_result')}</p>
+          )}
         </div>
       </div>
 
@@ -67,11 +76,14 @@ export const IncidentDetailsSection = ({
           <textarea
             required
             id="mission_result"
-            className="w-full min-h-[100px] p-2 border rounded-md text-right"
+            className={`w-full min-h-[100px] p-2 border rounded-md text-right ${validation.getError('mission_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             value={formData.mission_result || ''}
             onChange={(e) => onInputChange('mission_result', e.target.value)}
-            
+            aria-invalid={!!validation.getError('mission_result')}
           />
+          {validation.getError('mission_result') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mission_result')}</p>
+          )}
         </div>
       )}
 

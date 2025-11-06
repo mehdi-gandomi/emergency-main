@@ -118,6 +118,7 @@ class ContactDetail extends Model
         'help_triage_result', // نتیجه تریاژ نجات
         'provinces_assisting', // استان‌های همکار معین
         'cooperating_organizations_needed', // ارگان‌های مورد نیاز
+        'custom_organizational_source', // سایر (نوع سازمان سفارشی)
     ];
 
     protected $casts = [

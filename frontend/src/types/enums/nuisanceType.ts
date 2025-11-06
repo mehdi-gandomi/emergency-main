@@ -7,9 +7,9 @@ export enum NuisanceType {
 
 export const NuisanceTypeLabels: Record<NuisanceType, string> = {
   [NuisanceType.INSULT]: 'فحاشی و توهین',
-  [NuisanceType.ENTERTAINMENT]: 'سرگرمی و بازی',
+  [NuisanceType.ENTERTAINMENT]: 'شوخی و سرگرمی',
   [NuisanceType.SILENCE]: 'عدم مکالمه',
-  [NuisanceType.EMERGENCY_TEST]: 'تست شماره اضطراری',
+  [NuisanceType.EMERGENCY_TEST]: 'تست سلامت تلفن همراه',
 };
 
 

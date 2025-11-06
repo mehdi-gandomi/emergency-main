@@ -1,7 +1,7 @@
 export enum FollowUpType {
-  TEAM_PRESENCE = 'TEAM_PRESENCE',
-  INCIDENT_DETAILS = 'INCIDENT_DETAILS',
-  MISSION_RESULT = 'MISSION_RESULT',
+  TEAM_PRESENCE = 1,
+  INCIDENT_DETAILS = 2,
+  MISSION_RESULT = 3,
 }
 
 export const FollowUpTypeLabels: Record<FollowUpType, string> = {

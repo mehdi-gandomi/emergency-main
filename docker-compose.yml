@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # Laravel Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: emergency_backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/storage:/var/www/html/storage
+      - ./backend/bootstrap/cache:/var/www/html/bootstrap/cache
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-emergency_db}
+      - DB_USERNAME=${DB_USERNAME:-emergency_user}
+      - DB_PASSWORD=${DB_PASSWORD:-emergency_pass}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - emergency_network
+    command: >
+      sh -c "composer install --no-interaction --prefer-dist &&
+             php artisan key:generate --force || true &&
+             php artisan config:clear &&
+             php artisan cache:clear &&
+             php artisan migrate --force || true &&
+             php artisan serve --host=0.0.0.0 --port=8000"
+
+  # React Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: emergency_frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+    networks:
+      - emergency_network
+    command: npm run dev
+
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: emergency_mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE:-emergency_db}
+      - MYSQL_USER=${DB_USERNAME:-emergency_user}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-emergency_pass}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-root_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - emergency_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # phpMyAdmin (Optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: emergency_phpmyadmin
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_USER=${DB_USERNAME:-emergency_user}
+      - PMA_PASSWORD=${DB_PASSWORD:-emergency_pass}
+      - UPLOAD_LIMIT=300M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - emergency_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  emergency_network:
+    driver: bridge
+

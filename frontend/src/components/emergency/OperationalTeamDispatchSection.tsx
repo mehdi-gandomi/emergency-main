@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +14,7 @@ import { IncidentSourceLocation, IncidentSourceLocationLabels } from "@/types/en
 import { RelativeType, RelativeTypeLabels } from "@/types/enums/relativeType";
 import { IncidentFormData } from "@/types/incident";
 import { ORGANIZATIONAL_SOURCES } from "@/types/incident";
+import { useValidationStore } from '@/stores/validationStore';
 
 interface OperationalTeamDispatchSectionProps {
   formData: IncidentFormData;
@@ -22,11 +24,11 @@ interface OperationalTeamDispatchSectionProps {
 
 const ORGANIZATIONAL_OPTIONS = [
   // درون جمعیت از 1
-  { value: "1", label: "🔢 کد عملیاتی", type: "درون جمعیت" },
+  { value: "1", label: "🔢 تیم عملیاتی", type: "درون جمعیت" },
   { value: "2", label: "👨‍💼 رییس شعبه", type: "درون جمعیت" },
   { value: "3", label: "🧑‍🚒 مسئول امداد شعبه", type: "درون جمعیت" },
-  { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
-  { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
+  // { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
+  // { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
   { value: "6", label: "👨‍⚕️ معاون امداد و نجات", type: "درون جمعیت" },
   { value: "7", label: "🛠️ رئیس اداره عملیات", type: "درون جمعیت" },
   { value: "8", label: "🏢 EOC استان معین", type: "درون جمعیت" },
@@ -40,7 +42,8 @@ const ORGANIZATIONAL_OPTIONS = [
   { value: "24", label: "🛣️ راهداری", type: "برون جمعیت" },
   { value: "25", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
   { value: "26", label: "🏛️ فرمانداری", type: "برون جمعیت" },
-  { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
+  { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" },
+  { value: "28", label: "سایر", type: "برون جمعیت" }
 ];
 
 export const OperationalTeamDispatchSection = ({ 
@@ -48,6 +51,8 @@ export const OperationalTeamDispatchSection = ({
   onInputChange, 
   onMultiSelectChange 
 }: OperationalTeamDispatchSectionProps) => {
+  const validation = useValidationStore();
+  
   if (formData.type_call !== '5') {
     return null;
   }
@@ -66,8 +71,14 @@ export const OperationalTeamDispatchSection = ({
         <RadioGroup
           dir="rtl"
           value={String(formData.incident_declaration_source)}
-          onValueChange={(value) => onInputChange('incident_declaration_source', parseInt(value))}
-          className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+          onValueChange={(value) => {
+            onInputChange('incident_declaration_source', parseInt(value));
+            // Validate with updated formData after a short delay to ensure state is updated
+            setTimeout(() => {
+              validation.validateField('incident_declaration_source', { ...formData, incident_declaration_source: parseInt(value) } as IncidentFormData);
+            }, 0);
+          }}
+          className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('incident_declaration_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
             formData.incident_declaration_source === IncidentDeclarationSource.ORGANIZATIONAL 
@@ -111,10 +122,8 @@ export const OperationalTeamDispatchSection = ({
             <RadioGroupItem id="source-ecall" value={String(IncidentDeclarationSource.ECALL)} className="h-4 w-4" />
           </div>
         </RadioGroup>
-        {formData.incident_declaration_source === '' && (
-          <p className="text-sm text-red-600 text-right">
-            منبع اعلام حادثه الزامی است
-          </p>
+        {validation.getError('incident_declaration_source') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('incident_declaration_source')}</p>
         )}
       </div>      
       {/* موقعیت منبع اعلام حادثه */}
@@ -126,8 +135,13 @@ export const OperationalTeamDispatchSection = ({
         <RadioGroup
           dir="rtl"
           value={String(formData.incident_source_location)}
-          onValueChange={(value) => onInputChange('incident_source_location', parseInt(value))}
-          className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
+          onValueChange={(value) => {
+            onInputChange('incident_source_location', parseInt(value));
+            setTimeout(() => {
+              validation.validateField('incident_source_location', { ...formData, incident_source_location: parseInt(value) } as IncidentFormData);
+            }, 0);
+          }}
+          className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('incident_source_location') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
             formData.incident_source_location === IncidentSourceLocation.PRESENT_AT_SCENE 
@@ -171,6 +185,9 @@ export const OperationalTeamDispatchSection = ({
             <RadioGroupItem id="location-absent" value={String(IncidentSourceLocation.ABSENT_FROM_SCENE)} className="h-4 w-4" />
           </div>
         </RadioGroup>
+        {validation.getError('incident_source_location') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('incident_source_location')}</p>
+        )}
       </div>
       )}
 
@@ -183,8 +200,23 @@ export const OperationalTeamDispatchSection = ({
           <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
             نوع
           </Label>
-          <Select onValueChange={(value) => onInputChange('organizational_type', value)}>
-            <SelectTrigger className="h-10">
+          <Select 
+            onValueChange={(value) => {
+              onInputChange('organizational_type', value);
+              setTimeout(() => {
+                validation.validateField('organizational_type', { ...formData, organizational_type: value } as IncidentFormData);
+              }, 0);
+            }}
+            onOpenChange={(open) => {
+              if (!open && formData) {
+                validation.validateField('organizational_type', formData);
+              }
+            }}
+          >
+            <SelectTrigger 
+              className={`h-10 ${validation.getError('organizational_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              aria-invalid={!!validation.getError('organizational_type')}
+            >
               <SelectValue placeholder="انتخاب نوع" />
             </SelectTrigger>
             <SelectContent>
@@ -192,17 +224,27 @@ export const OperationalTeamDispatchSection = ({
               <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
             </SelectContent>
           </Select>
+          {validation.getError('organizational_type') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('organizational_type')}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
             نوع سازمان
           </Label>
-          <Popover>
+          <Popover
+            onOpenChange={(open) => {
+              if (!open && formData) {
+                validation.validateField('organizational_source', formData);
+              }
+            }}
+          >
             <PopoverTrigger className="popover-trigger-full">
               <Button
                 variant="outline"
                 role="combobox"
-                className="h-10 w-full justify-between text-right"
+                className={`h-10 w-full justify-between text-right ${validation.getError('organizational_source') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                aria-invalid={!!validation.getError('organizational_source')}
               >
                 {formData.organizational_source.length > 0 
                   ? `${formData.organizational_source.length} مورد انتخاب شده`
@@ -223,7 +265,12 @@ export const OperationalTeamDispatchSection = ({
                         <CommandItem
                           key={option.value}
                           value={option.value}
-                          onSelect={() => onMultiSelectChange('organizational_source', option.value)}
+                          onSelect={() => {
+                            onMultiSelectChange('organizational_source', option.value);
+                            setTimeout(() => {
+                              validation.validateField('organizational_source', formData);
+                            }, 0);
+                          }}
                           className="flex items-center justify-between"
                         >
                           <div className="flex items-center">
@@ -260,7 +307,31 @@ export const OperationalTeamDispatchSection = ({
               })}
             </div>
           )}
+          {validation.getError('organizational_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('organizational_source')}</p>
+          )}
         </div>
+        </div>
+      )}
+
+      {/* Custom Organizational Source Input - shown when "سایر" (value "28") is selected */}
+      {formData.organizational_source && formData.organizational_source.includes("28") && (
+        <div className="space-y-2">
+          <Label htmlFor="custom_organizational_source" className="text-sm font-medium text-right">
+            سایر (نوع سازمان) *
+          </Label>
+          <Input
+            id="custom_organizational_source"
+            placeholder="لطفاً نوع سازمان را وارد کنید"
+            value={formData.custom_organizational_source || ''}
+            onChange={(e) => onInputChange('custom_organizational_source', e.target.value)}
+            onBlur={() => validation.validateField('custom_organizational_source', formData)}
+            aria-invalid={!!validation.getError('custom_organizational_source')}
+            className={`h-10 text-right ${validation.getError('custom_organizational_source') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+          />
+          {validation.getError('custom_organizational_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('custom_organizational_source')}</p>
+          )}
         </div>
       )}
 
@@ -273,8 +344,13 @@ export const OperationalTeamDispatchSection = ({
           <RadioGroup
             dir="rtl"
             value={String(formData.public_source)}
-          onValueChange={(value) => onInputChange('public_source', parseInt(value))}
-            className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
+            onValueChange={(value) => {
+              onInputChange('public_source', parseInt(value));
+              setTimeout(() => {
+                validation.validateField('public_source', { ...formData, public_source: parseInt(value) } as IncidentFormData);
+              }, 0);
+            }}
+            className={`grid grid-cols-1 md:grid-cols-2 gap-2 text-right ${validation.getError('public_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
           >
               <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
               formData.public_source === PublicSource.PASSERBY 
@@ -334,7 +410,10 @@ export const OperationalTeamDispatchSection = ({
           
           
           
-          </RadioGroup>
+            </RadioGroup>
+          {validation.getError('public_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('public_source')}</p>
+          )}
 
           {/* Relative Type Details */}
           {formData.public_source === PublicSource.RELATIVES && (
@@ -342,18 +421,38 @@ export const OperationalTeamDispatchSection = ({
               <Label htmlFor="relative_type" className="text-sm font-medium text-right">
                 نوع خویشاوندی
               </Label>
-              <Select onValueChange={(value) => onInputChange('relative_type', value)}>
-                <SelectTrigger className="h-10">
+              <Select 
+                onValueChange={(value) => {
+                  onInputChange('relative_type', parseInt(value));
+                  setTimeout(() => {
+                    validation.validateField('relative_type', formData);
+                  }, 0);
+                }}
+                onOpenChange={(open) => {
+                  if (!open && formData) {
+                    validation.validateField('relative_type', formData);
+                  }
+                }}
+              >
+                <SelectTrigger 
+                  className={`h-10 ${validation.getError('relative_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  aria-invalid={!!validation.getError('relative_type')}
+                >
                   <SelectValue placeholder="انتخاب نوع خویشاوندی" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(RelativeType).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {RelativeTypeLabels[type]}
-                    </SelectItem>
-                  ))}
+                  {Object.values(RelativeType)
+                    .filter((type): type is RelativeType => typeof type === 'number')
+                    .map((type) => (
+                      <SelectItem key={type} value={String(type)}>
+                        {RelativeTypeLabels[type]}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              {validation.getError('relative_type') && (
+                <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('relative_type')}</p>
+              )}
             </div>
           )}
         </div>

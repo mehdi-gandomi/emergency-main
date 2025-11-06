@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api, setToken } from "@/lib/api";
 import {verifyPersonnel} from "@/services/personnelService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 export interface PersonnelVerificationResponse {
   status: 1 | 2 | 0; // 1: Admin, 2: Operator, 0: Not found
   role?: string;
@@ -20,6 +21,8 @@ export interface PersonnelVerificationResponse {
   post?: string;
   center?: string;
   province?: string;
+  province_id?: number;
+  extensions?: any[];
 }
 
 const Login = () => {
@@ -31,6 +34,8 @@ const Login = () => {
   const [verificationStep, setVerificationStep] = useState(false);
   const [personnelRole, setPersonnelRole] = useState<string | null>(null);
   const [personnelId, setPersonnelId] = useState<number | null>(null);
+  const [extensions, setExtensions] = useState<any[]>([]);
+  const [selectedExtension, setSelectedExtension] = useState<string>("");
   const [personnelDetails, setPersonnelDetails] = useState<{
     name?: string;
     family?: string;
@@ -41,7 +46,9 @@ const Login = () => {
     post?: string;
     province?: string;
     center?: string;
-    status?:number
+    status?:number;
+    province_id?: number;
+    extension?: string;
   } | null>(null);
 
   const verifyNationalCode = async (e: React.FormEvent) => {
@@ -109,8 +116,14 @@ const Login = () => {
         post: response.post,
         status: response.status,
         province: response.province,
-        center: response.center
+        center: response.center,
+        province_id: response.province_id,
+        extension: ""
       });
+
+      // Save extensions list for selection
+      setExtensions(Array.isArray(response.extensions) ? response.extensions : []);
+      setSelectedExtension("");
       
       setVerificationStep(true);
     } catch (err: any) {
@@ -186,6 +199,15 @@ navigate("/events", { replace: true });
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "در حال بررسی..." : "بررسی کد ملی"}
               </Button>
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin-login')}
+                  className="text-blue-600 hover:underline"
+                >
+                  ورود با ادمین
+                </button>
+              </div>
             </form>
           ) : (
             <>
@@ -203,6 +225,43 @@ navigate("/events", { replace: true });
                   </AlertDescription>
                 </Alert>
               )}
+              {extensions && extensions.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-right mb-2 text-sm text-slate-600">لطفا داخلی خود را انتخاب نمایید</div>
+                  <RadioGroup
+                    value={selectedExtension}
+                    onValueChange={(val) => {
+                      setSelectedExtension(val);
+                      setPersonnelDetails((prev) => prev ? { ...prev, extension: val } : prev);
+                    }}
+                    className="flex flex-row flex-wrap gap-2"
+                  >
+                    {extensions.map((ext, idx) => {
+                      const value = typeof ext === 'string' ? ext : (ext?.value ?? JSON.stringify(ext));
+                      const label = typeof ext === 'string' ? ext : (ext?.label ?? ext?.title ?? String(value));
+                      const id = `ext-${idx}`;
+                      const isActive = selectedExtension === value;
+                      return (
+                        <div
+                          key={id}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm transition-all cursor-pointer ${
+                            isActive
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          }`}
+                          onClick={() => {
+                            setSelectedExtension(value);
+                            setPersonnelDetails((prev) => prev ? { ...prev, extension: value } : prev);
+                          }}
+                        >
+                          <RadioGroupItem value={value} id={id} />
+                          <Label htmlFor={id} className="cursor-pointer text-sm select-none">{label}</Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+                </div>
+              )}
               <form onSubmit={submit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-right block">رمز عبور</Label>
@@ -216,7 +275,7 @@ navigate("/events", { replace: true });
                   />
                 </div>
                 {error && <div className="text-red-600 text-sm text-right">{error}</div>}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || (extensions.length > 0 && !selectedExtension)}>
                   {loading ? "در حال ورود..." : "ورود"}
                 </Button>
                 <Button 

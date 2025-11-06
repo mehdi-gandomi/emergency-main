@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -172,12 +172,17 @@ const createPulsingIcon = (isDraggable = true) => {
 };
 
 // Component to handle flying to new positions
-function FlyToPosition({ position, shouldFlyTo }: { position: [number, number] | null, shouldFlyTo: boolean }) {
+function FlyToPosition({ position, shouldFlyTo, isDragging }: { position: [number, number] | null, shouldFlyTo: boolean, isDragging: React.RefObject<boolean> }) {
   const map = useMap();
   const prevPosition = useRef<[number, number] | null>(null);
   const isFlying = useRef(false);
 
   useEffect(() => {
+    // Don't fly if marker is being dragged
+    if (isDragging.current) {
+      return;
+    }
+    
     // Only flyTo when shouldFlyTo is true (coordinates set via props like "دریافت موقعیت")
     if (position && position !== prevPosition.current && !isFlying.current && shouldFlyTo) {
       isFlying.current = true;
@@ -206,7 +211,7 @@ function FlyToPosition({ position, shouldFlyTo }: { position: [number, number] |
       // Just update the previous position without flying
       prevPosition.current = position;
     }
-  }, [position, map, shouldFlyTo]);
+  }, [position, map, shouldFlyTo, isDragging]);
 
   return null;
 }
@@ -490,9 +495,10 @@ interface MapProps {
   onPositionChange?: (position: [number, number]) => void;
   shouldFlyTo?: boolean;
   enableMarkerDrag?: boolean;
+  preventAutoFlyTo?: boolean; // Flag to prevent flyTo when position prop changes
 }
 
-export default function Map({ position, onPositionChange, shouldFlyTo = false, enableMarkerDrag = true }: MapProps) {
+export default function Map({ position, onPositionChange, shouldFlyTo = false, enableMarkerDrag = true, preventAutoFlyTo = false }: MapProps) {
   const center = DEFAULT_CENTER;
   const zoom = position ? 9 : 5;
 
@@ -502,9 +508,14 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
   // Keep a local mirror so marker shows immediately on click
   const [internalPosition, setInternalPosition] = useState<[number, number] | null>(position);
   
-  // Only update internal position when position prop changes
+  // Track if marker is being dragged to prevent zoom changes
+  const isDraggingRef = useRef(false);
+  
+  // Only update internal position when position prop changes, but don't trigger flyTo if preventAutoFlyTo is true
   useEffect(() => {
-    setInternalPosition(position ?? null);
+    if (position) {
+      setInternalPosition(position);
+    }
   }, [position]);
   
   // Force marker to appear immediately when position changes
@@ -588,8 +599,14 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
                 const map = marker._map;
                 const markerElement = marker.getElement();
                 
-                // Disable map dragging when marker dragging starts
+                // Mark that we're dragging to prevent zoom changes
+                isDraggingRef.current = true;
+                
+                // Store current zoom level to preserve it
                 if (map) {
+                  (map as any)._preservedZoom = map.getZoom();
+                  
+                  // Disable map dragging when marker dragging starts
                   map.dragging.disable();
                   map.doubleClickZoom.disable();
                   map.scrollWheelZoom.disable();
@@ -607,6 +624,18 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
                 const map = marker._map;
                 const markerElement = marker.getElement();
                 
+                // Get new position
+                const newPosition = marker.getLatLng();
+                const newPos: [number, number] = [newPosition.lat, newPosition.lng];
+                
+                // Preserve zoom level before updating position
+                if (map && (map as any)._preservedZoom !== undefined) {
+                  map.setZoom((map as any)._preservedZoom, { animate: false });
+                }
+                
+                // Mark dragging as finished
+                isDraggingRef.current = false;
+                
                 // Re-enable map dragging when marker dragging ends
                 if (map) {
                   map.dragging.enable();
@@ -621,14 +650,26 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
                   markerElement.classList.remove('dragging');
                 }
                 
-                const newPosition = marker.getLatLng();
-                const newPos: [number, number] = [newPosition.lat, newPosition.lng];
-                handlePositionChange(newPos); // <— sync local + parent
+                // Update position after a small delay to ensure zoom is preserved
+                setTimeout(() => {
+                  handlePositionChange(newPos); // <— sync local + parent
+                }, 0);
               },
               drag: (event: any) => {
                 // Ensure dragging state is maintained
                 const marker = event.target;
                 const markerElement = marker.getElement();
+                const map = marker._map;
+                
+                // Keep preserving zoom during drag
+                if (map && (map as any)._preservedZoom !== undefined) {
+                  const currentZoom = map.getZoom();
+                  // Prevent zoom changes during drag
+                  if (Math.abs(currentZoom - (map as any)._preservedZoom) > 0.1) {
+                    map.setZoom((map as any)._preservedZoom, { animate: false });
+                  }
+                }
+                
                 if (markerElement && !markerElement.classList.contains('dragging')) {
                   markerElement.classList.add('dragging');
                 }
@@ -639,7 +680,7 @@ export default function Map({ position, onPositionChange, shouldFlyTo = false, e
         
         {/* Helper components */}
         <InvalidateSize />
-        <FlyToPosition position={internalPosition} shouldFlyTo={shouldFlyTo} />
+        <FlyToPosition position={internalPosition} shouldFlyTo={shouldFlyTo && !preventAutoFlyTo} isDragging={isDraggingRef} />
         <TileLoader />
         <MapClickHandler onPositionChange={handlePositionChange} />
         {/* <MapInteractions position={internalPosition} onPositionChange={handlePositionChange} /> */}

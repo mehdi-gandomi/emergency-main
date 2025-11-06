@@ -14,6 +14,7 @@ export interface IncidentFormData {
   type_report?: string;           // نوع گزارش(عملیات1،خدمات2)
   report_event?: number;     // نوع حادثه اعلامی
   device?: string;                // نام دستگاه
+  custom_device_name?: string; //نام سفارشی دستگاه
   mission_cancel_reason: string; // دلیل لغو مأموریت
   cancel_source: string; // منبع لغو کننده
   call_track: string; // شماره تماس پیگیری کننده
@@ -58,6 +59,7 @@ export interface IncidentFormData {
   incident_declaration_source: number;    // منبع اعلام حادثه سازمانی/مردمی
   organizational_source: string[];        // نوع سازمان
   organizational_type?: string;           // نوع (درون جمعیت/برون جمعیت)
+  custom_organizational_source?: string;   // سایر (نوع سازمان سفارشی)
   public_source: number;                  // نوع منبع مردمی
   relative_type: number;                  // نوع خویشاوندی
   event_people_num: string;               // تعداد قربانیان
@@ -101,10 +103,10 @@ export interface IncidentFormData {
    operational_teams: OperationalTeam[];       // نوع تیم عملیاتی مورد نیاز
    mission_types: string[];                    // نوع مأموریت تیم عملیاتی
    required_vehicles: RequiredVehicle[];       // نوع خودرو مورد نیاز
-  needs_other_provinces: boolean;             // نیازمند حضور سایر استان ها
+  needs_other_provinces: string;             // نیازمند حضور سایر استان ها
   provinces_assisting: number[];              // استان‌های معین یاری‌کننده
-  cooperating_orgs_present: boolean;          // آیا ارگان های امدادی حاضر هستند؟
-  cooperating_orgs_needed: boolean;          // آیا نیاز به حضور است؟
+  cooperating_orgs_present: string;          // آیا ارگان های امدادی حاضر هستند؟
+  cooperating_orgs_needed: string;          // آیا نیاز به حضور است؟
   cooperating_organizations_needed: string[]; // ارگان‌های مورد نیاز (زمانی که حاضر نیستند)
   mission_notes: string;  //ملاحظات ماموریت
    call_result?: number;     // نتیجه تماس
@@ -124,7 +126,7 @@ export interface VictimInfo {
 export type ContactType = '1' | '2' | '3' | '4';
 export type CallType = '1' | '2' | '4' | '5' | '6' | '8' | '9';
 export type Priority = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
-export type NuisanceType = 'فحاشی' | 'سرگرمی و بازی' | 'عدم مکالمه' | 'تست شماره اضطراری';
+export type NuisanceType = 'فحاشی' | 'شوخی و سرگرمی' | 'عدم مکالمه' | 'تست سلامت تلفن همراه';
 export type IncidentSourceLocation = 'حاضر در محل' | 'خارج شده از محل' | 'عدم حضور در صحنه';
 export type IncidentDeclarationSource = 'سازمانی' | 'مردمی';
 export type PublicSourceType = 'خود فرد حادثه دیده' | 'عبوری حاضر در صحنه' | 'عبوری خارج شده از صحنه' | 'خویشاوندان';
@@ -161,7 +163,7 @@ export const ORGANIZATIONAL_SOURCES = [
   { value: "راهداری", label: "🛣️ راهداری" },
   { value: "فرمانداری", label: "🏛️ فرمانداری" },
   { value: "مدیریت بحران", label: "⚠️ مدیریت بحران" },
-  { value: "کد عملیاتی", label: "🔢 کد عملیاتی" },
+  { value: "تیم عملیاتی", label: "🔢 تیم عملیاتی" },
   { value: "عوامل ستادی و شعب سازمان امدادونجات", label: "🏢 عوامل ستادی و شعب سازمان امدادونجات" },
   { value: "EOC استان معین", label: "🏢 EOC استان معین" },
   { value: "فدراسیون های ورزشی", label: "⚽ فدراسیون های ورزشی" },
