@@ -45,13 +45,13 @@ export const ContactTypeSection: React.FC<ContactTypeSectionProps> = ({
       >
         <div className={`flex flex-row-reverse items-center justify-between gap-2 rounded-xl border-2 p-2 transition-all duration-200 cursor-pointer hover:shadow-md ${
           formData.contact_type === '1' 
-            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-            : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+            ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
+            : 'border-red-300 dark:border-red-800 bg-background hover:border-red-400'
         }`}>
           <Label htmlFor="contact_type-emdadi" className="flex-1 cursor-pointer flex items-center gap-2 justify-between">
-            <span className="font-medium text-[12px]">اضطراری</span>
-            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <LifeBuoy className="h-6 w-6 text-emerald-600" />
+            <span className="font-bold text-[12px]">اضطراری</span>
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <LifeBuoy className="h-6 w-6 text-red-600" />
             </div>
           </Label>
           <RadioGroupItem id="contact_type-emdadi" value="1" className="h-5 w-5" />
@@ -62,7 +62,7 @@ export const ContactTypeSection: React.FC<ContactTypeSectionProps> = ({
             : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
         }`}>
           <Label htmlFor="contact_type-emdadi-not-urgent" className="flex-1 cursor-pointer flex items-center gap-2 justify-between">
-            <span className="font-medium text-[12px]">غیراضطراری</span>
+            <span className="font-bold text-[12px]">غیراضطراری</span>
             <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
               <BadgeInfo className="h-6 w-6 text-emerald-600" />
             </div>
@@ -76,7 +76,7 @@ export const ContactTypeSection: React.FC<ContactTypeSectionProps> = ({
             : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
         }`}>
           <Label htmlFor="contact_type-mazahim" className="flex-1 cursor-pointer flex items-center gap-2 justify-between">
-            <span className="font-medium text-[12px]">مزاحم</span>
+            <span className="font-bold text-[12px]">مزاحم</span>
             <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
               <Ban className="h-6 w-6 text-red-600" />
             </div>
@@ -91,7 +91,7 @@ export const ContactTypeSection: React.FC<ContactTypeSectionProps> = ({
             : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
         }`}>
           <Label htmlFor="not-completed" className="flex-1 cursor-pointer flex items-center gap-2 justify-between">
-            <span className="font-medium text-[12px]">ناتمام</span>
+            <span className="font-bold text-[12px]">ناتمام</span>
             <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
               <CircleDashed className="h-6 w-6 text-red-600" />
             </div>

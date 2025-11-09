@@ -19,6 +19,7 @@ import { IncidentFormData, MISSION_CANCEL_REASONS } from '@/types/incident'
 import { ValidationProvider, useValidationStore } from '@/stores/validationStore'
 import { FollowUpType, FollowUpTypeLabels } from '@/types/enums/followUpType'
 import { incidentService } from '@/services/incidentService';
+import useAppStore from '@/stores/appStore';
 import { IncidentSourceLocation } from '@/types/enums/incidentSourceLocation';
 import { IncidentDeclarationSource, IncidentDeclarationSourceLabels } from '@/types/enums/incidentDeclarationSource';
 import { PublicSource, PublicSourceLabels } from '@/types/enums/publicSource';
@@ -37,6 +38,7 @@ import { ProvinceCitySelector } from "./ProvinceCitySelector";
 import { LocationSection } from "./LocationSection";
 import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
+import { NuisanceType } from "@/types/enums/nuisanceType";
  
 
 //
@@ -110,7 +112,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
     phone_in: "102",
     date_call: "",
     time_call: "",
-    nuisance_type: "",
+    nuisance_type: NuisanceType.SILENCE,
     help_triage_result: "",
     caller_name: "",
     caller_lastname: "",
@@ -124,7 +126,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
     priority: "",
     time_of_incident: "",
     contact_type: "",
-    call_time_info: new Date().toString(),
+    call_time_info: "",
     incident_source_location: "",  // Will be populated with IncidentSourceLocation enum values
 
     // Fields from contact_details table
@@ -199,6 +201,29 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
   const validation = useValidationStore();
   const [hasInjured, setHasInjured] = useState<'yes' | 'no' | ''>('');
   const [hasNewInfo, setHasNewInfo] = useState<'yes' | 'no' | ''>('');
+  const { syncServerTime, getServerTime, getServerTimeString } = useAppStore();
+
+  // Sync server time on mount
+  useEffect(() => {
+    syncServerTime();
+    // Re-sync every 5 minutes
+    const syncInterval = setInterval(() => {
+      syncServerTime();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(syncInterval);
+  }, [syncServerTime]);
+
+  useEffect(() => {
+    // Initialize with server date/time if not already set
+    // Use setTimeout to ensure this runs after render cycle to avoid React warnings
+    if (!formData.call_time_info || formData.call_time_info.trim() === '') {
+      setTimeout(() => {
+        handleInputChange('call_time_info', getServerTimeString());
+      }, 0);
+    }
+  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getServerTimeString]);
 
   // Initialize phone_in from shift_data.extension in localStorage (set at login)
   useEffect(() => {
@@ -348,6 +373,33 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
       validation.validateField(field, updated);
       return updated;
     });
+  };
+
+  // Helper function to handle main_complaint input with digit validation
+  const handleMainComplaintChange = (value: string) => {
+    handleInputChange('main_complaint', value);
+    // Trigger validation immediately to check for digits
+    setTimeout(() => {
+      validation.validateField('main_complaint', { ...formData, main_complaint: value } as IncidentFormData);
+    }, 0);
+  };
+
+  // Helper function to handle caller_name input with digit validation
+  const handleCallerNameChange = (value: string) => {
+    handleInputChange('caller_name', value);
+    // Trigger validation immediately to check for digits
+    setTimeout(() => {
+      validation.validateField('caller_name', { ...formData, caller_name: value } as IncidentFormData);
+    }, 0);
+  };
+
+  // Helper function to handle caller_lastname input with digit validation
+  const handleCallerLastnameChange = (value: string) => {
+    handleInputChange('caller_lastname', value);
+    // Trigger validation immediately to check for digits
+    setTimeout(() => {
+      validation.validateField('caller_lastname', { ...formData, caller_lastname: value } as IncidentFormData);
+    }, 0);
   };
 
   const handleMultiSelectChange = (field: keyof IncidentFormData, value: string) => {
@@ -527,8 +579,8 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
           call_track_name: "",
           mission_result: "",
           type_call: "",
-          type_report: "1",
-          report_event: 58,
+          type_report: "",
+          report_event: null,
           device: "",
           event_repetitive_id: 0,
           organizations_in_place: [],
@@ -539,7 +591,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
           phone_in: "",
           date_call: "",
           time_call: "",
-          nuisance_type: "",
+          nuisance_type: NuisanceType.SILENCE,
           caller_name: "",
           caller_lastname: "",
           location: "",
@@ -552,7 +604,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
           priority: "",
           time_of_incident: "",
           contact_type: "",
-          call_time_info: new Date().toString(),
+          call_time_info: "",
           incident_source_location: "",
           lon: "",
           lat: "",
@@ -684,7 +736,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                         name="main_complaint"
                         type="text"
                         value={formData.main_complaint || ""}
-                        onChange={(e) => handleInputChange('main_complaint', e.target.value)}
+                        onChange={(e) => handleMainComplaintChange(e.target.value)}
                         onBlur={() => handleFieldBlur('main_complaint')}
                         aria-invalid={!!validation.getError('main_complaint')}
                         className={validation.getError('main_complaint') ? 'border-red-500 focus-visible:ring-red-500' : ''}
@@ -1492,8 +1544,23 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                                 name="main_complaint"
                                 type="text"
                                 value={formData.main_complaint || ""}
-                                onChange={(e) => setFormData(prev => ({ ...prev, main_complaint: e.target.value }))}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setFormData(prev => ({ ...prev, main_complaint: value }));
+                                  // Trigger validation if digits are present
+                                  if (/[0-9]/.test(value)) {
+                                    setTimeout(() => {
+                                      validation.validateField('main_complaint', { ...formData, main_complaint: value } as IncidentFormData);
+                                    }, 0);
+                                  }
+                                }}
+                                onBlur={() => handleFieldBlur('main_complaint')}
+                                aria-invalid={!!validation.getError('main_complaint')}
+                                className={validation.getError('main_complaint') ? 'border-red-500 focus-visible:ring-red-500' : ''}
                               />
+                              {validation.getError('main_complaint') && (
+                                <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('main_complaint')}</p>
+                              )}
                             </div>
                           )}
 
@@ -1726,7 +1793,8 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                     <Input
                       id="caller_name"
                       value={formData.caller_name}
-                      onChange={(e) => handleInputChange('caller_name', e.target.value)}
+                      onChange={(e) => handleCallerNameChange(e.target.value)}
+                      onBlur={() => handleFieldBlur('caller_name')}
                       aria-invalid={!!validation.getError('caller_name')}
                       className={`h-11 text-right ${validation.getError('caller_name') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
@@ -1741,7 +1809,8 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                     <Input
                       id="caller_lastname"
                       value={formData.caller_lastname}
-                      onChange={(e) => handleInputChange('caller_lastname', e.target.value)}
+                      onChange={(e) => handleCallerLastnameChange(e.target.value)}
+                      onBlur={() => handleFieldBlur('caller_lastname')}
                       aria-invalid={!!validation.getError('caller_lastname')}
                       className={`h-11 text-right ${validation.getError('caller_lastname') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
@@ -1769,7 +1838,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
           <>
             <div className="mt-3 space-y-2">
               <Label htmlFor="type_call" className="text-sm font-medium flex items-center gap-2 justify-start">
-                <span>جزئیات تماس اضطراری</span>
+                <span>جزئیات تماس غیراضطراری</span>
               </Label>
               <RadioGroup
                 dir="rtl"
@@ -1829,7 +1898,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                     locale={persian_fa}
                     plugins={[<TimePicker position="bottom" />]}
                     format="YYYY/MM/DD HH:mm:ss"
-                    value={formData.call_time_info || new Date().toString()}
+                    value={formData.call_time_info || getServerTimeString()}
                     onChange={(value) => handleInputChange('call_time_info', value?.toString() || '')}
                     style={{
                       width: "100%",
@@ -1876,7 +1945,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                   <Input
                     id="mainComplaint"
                     value={formData.main_complaint}
-                    onChange={(e) => handleInputChange('main_complaint', e.target.value)}
+                    onChange={(e) => handleMainComplaintChange(e.target.value)}
                     onBlur={() => handleFieldBlur('main_complaint')}
                     required
                     aria-invalid={!!validation.getError('main_complaint')}
@@ -2149,7 +2218,7 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
           </>
         )}
         {formData.contact_type === '3' && (
-          <div className="mt-3 space-y-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-r-4 border-red-500">
+          <div className="mt-3 space-y-4 p-4 rounded-lg ">
             <h4 className="font-semibold text-red-700 dark:text-red-300 text-right">جزئیات تماس مزاحم</h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2199,10 +2268,14 @@ const IncidentFormInner = ({ onMobileStatsChange }: IncidentFormInnerProps = {})
                 </Label>
                 <Input
                   id="nuisanceCallerNumber"
-
+                  onChange={(e) => handleInputChange('mobile', e.target.value)}
+                  value={formData.mobile}
                   className="h-10 text-right"
                   dir="ltr"
                 />
+                {validation.getError('mobile') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mobile')}</p>
+        )}
               </div>
             </div>
 

@@ -40,6 +40,26 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const validateField = useCallback((field: keyof IncidentFormData, data: IncidentFormData) => {
     let message: string | undefined;
+    if(field == 'mobile' && isEmpty(data.mobile)) {
+      message = 'شماره تماس گیرنده الزامی است.';
+    }
+    // Validation for fields that should not contain digits
+    if (field === 'main_complaint' && data.main_complaint) {
+      if (/[0-9]/.test(data.main_complaint)) {
+        message = 'شکایت اصلی نمی‌تواند شامل عدد باشد.';
+      }
+    }
+    if (field === 'caller_name' && data.caller_name) {
+      if (/[0-9]/.test(data.caller_name)) {
+        message = 'نام تماس گیرنده نمی‌تواند شامل عدد باشد.';
+      }
+    }
+    if (field === 'caller_lastname' && data.caller_lastname) {
+      if (/[0-9]/.test(data.caller_lastname)) {
+        message = 'نام خانوادگی تماس گیرنده نمی‌تواند شامل عدد باشد.';
+      }
+    }
+    
     if (String(data.type_call) === '9') {
       if(field == 'device' && isEmpty(data.device)) {
         message = 'نام دستگاه الزامی است.';
@@ -157,6 +177,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       'event_people_num',
       'caller_name',
       'caller_lastname',
+      'main_complaint',
       'incident_source_location',
       'public_source',
       'relative_type',
@@ -174,7 +195,8 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       'cancel_public_source',
       'cancel_relative_type',
       'cancel_organizational_type',
-      'cancel_organizational_source'
+      'cancel_organizational_source',
+      'mobile'
     ];
     const next: ValidationErrors = {};
     fieldsToCheck.forEach((f) => {

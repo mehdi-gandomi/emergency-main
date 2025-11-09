@@ -34,8 +34,10 @@ import { Link } from "react-router-dom";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { ChevronLeft, ChevronRight } from "lucide-react"; // Add these imports
+import useAppStore from "@/stores/appStore";
 
 export const EmergencyDashboard = () => {
+  const { syncServerTime, getFormattedServerTime } = useAppStore();
   const [isCallActive, setIsCallActive] = useState(false);
   const [mobileStats, setMobileStats] = useState<{
     number: string;
@@ -216,7 +218,7 @@ export const EmergencyDashboard = () => {
     window.location.href = '/login';
   };
 
-  // Fetch profile on mount
+  // Fetch profile on mount and sync server time
   useEffect(() => {
     (async () => {
       try {
@@ -227,17 +229,19 @@ export const EmergencyDashboard = () => {
         // token invalid -> redirect to login
         // window.location.href = '/login';
       }
+      // Sync server time on mount
+      await syncServerTime();
     })();
-  }, []);
+  }, [syncServerTime]);
 
-  // Live time (updates every second)
-  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('fa-IR'));
+  // Live server time (updates every second)
+  const [currentTime, setCurrentTime] = useState<string>(getFormattedServerTime());
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('fa-IR'));
+      setCurrentTime(getFormattedServerTime());
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [getFormattedServerTime]);
   const activeIncidents = 3;
   const pendingCalls = 2;
   const operatorsOnline = 8;

@@ -7,10 +7,11 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import { Calendar, Clock } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { Button } from "../ui/button";
 import { useValidationStore } from '@/stores/validationStore';
 import { incidentService } from '@/services/incidentService';
+import useAppStore from '@/stores/appStore';
 
 interface CommonCallInfoProps {
   formData: {
@@ -43,7 +44,7 @@ interface CommonCallInfoProps {
 
 export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange, onMobileStatsChange }: CommonCallInfoProps) => {
   const validation = useValidationStore();
-  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  const { getServerTime, getServerTimeString } = useAppStore();
   const [loadingStats, setLoadingStats] = useState(false);
   const MIN_TEXT_CHARS = 20;
 
@@ -91,20 +92,16 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange,
   }, [onMobileStatsChange, isValidPhoneNumber]);
 
   useEffect(() => {
-    // Set current date and time when component mounts
-    const now = new Date();
-    setCurrentDateTime(now);
-
-    // Initialize with current date/time if not already set
+    // Initialize with server date/time if not already set
     // Use setTimeout to ensure this runs after render cycle to avoid React warnings
     if (!formData.call_time_info || formData.call_time_info.trim() === '') {
       setTimeout(() => {
-        onInputChange('call_time_info', now.toString());
+        onInputChange('call_time_info', getServerTimeString());
       }, 0);
     }
   
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getServerTimeString]);
 
   // Fetch stats when mobile changes
   useEffect(() => {
@@ -120,7 +117,7 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange,
   }, [formData.mobile, fetchContactStats, onMobileStatsChange, isValidPhoneNumber]);
 
   return (
-    <div className="mt-3 space-y-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-r-4 border-red-500">
+    <div className="mt-3 space-y-4 p-4  rounded-lg ">
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +146,7 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange,
               locale={persian_fa}
               plugins={[<TimePicker position="bottom" key="time-picker" />]}
               format="YYYY/MM/DD HH:mm:ss"
-              value={formData.call_time_info ? new Date(formData.call_time_info) : currentDateTime}
+              value={formData.call_time_info ? new Date(formData.call_time_info) : getServerTime()}
               onChange={(value) => onInputChange('call_time_info', value?.toString() || '')}
               style={{
                 width: "100%",
@@ -186,6 +183,9 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange,
           dir="ltr"
           disabled={loadingStats}
         />
+        {validation.getError('mobile') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mobile')}</p>
+        )}
       </div>
       {/* زمان وقوع حادثه */}
       {formData.type_call == 5 && (
@@ -210,7 +210,7 @@ export const CommonCallInfo = ({ formData, descriptionFieldTitle, onInputChange,
           plugins={[<TimePicker position="bottom" />]}
           format="YYYY/MM/DD HH:mm:ss"
           placeholder="انتخاب تاریخ و زمان وقوع حادثه"
-          value={formData.time_of_incident}
+          value={formData.time_of_incident || (formData.time_of_incident !== null ? getServerTimeString() : '')}
           onChange={(value) => onInputChange('time_of_incident', value?.toString() || '')}
           disabled={formData.time_of_incident === null}
           style={{

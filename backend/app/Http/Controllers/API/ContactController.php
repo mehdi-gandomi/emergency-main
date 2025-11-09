@@ -191,7 +191,43 @@ class ContactController extends Controller
 
         // Create contact
         $contact = Contact::create($contactData);
+        if (!empty(array_filter($detailsData))) {
 
+            // Field mappings from frontend to contact_details
+            if ($request->filled('latitude')) $detailsData['lat'] = $request->latitude;
+            if ($request->filled('longitude')) $detailsData['lon'] = $request->longitude;
+            if ($request->filled('location')) $detailsData['address'] = $request->location;
+
+            // Map number fields
+            if ($request->filled('injured_num')) $detailsData['injured_num'] = $request->injured_num;
+            if ($request->filled('number_of_vehicles')) $detailsData['car_num'] = $request->number_of_vehicles;
+            if ($request->filled('number_of_trapped')) $detailsData['prisoners_num'] = $request->number_of_trapped;
+            if ($request->filled('number_of_houses')) $detailsData['caught_homes_num'] = $request->number_of_houses;
+            if ($request->filled('trapped_in_flood_snow_num')) $detailsData['caught_in_snow_flood_num'] = $request->trapped_in_flood_snow_num;
+
+            // Combine caller names
+            if ($request->filled('caller_first_name') || $request->filled('caller_last_name')) {
+                $detailsData['caller_name'] = trim(($request->caller_first_name ?? '') . ' ' . ($request->caller_last_name ?? ''));
+            }
+
+            // Handle call_time_info - separate into date and time
+            // if ($request->filled('call_time_info')) {
+            //     $call_time = \Carbon\Carbon::parse($request->call_time_info);
+            //     $detailsData['event_date'] = $call_time->format('Y/m/d');
+            //     $detailsData['event_time'] = $call_time->format('H:i:s');
+            // }
+
+            // Handle time_of_incident
+            // if ($request->filled('time_of_incident')) {
+            //     $incident_time = \Carbon\Carbon::parse($request->time_of_incident);
+            //     $detailsData['event_date'] = $incident_time->format('Y/m/d');
+            //     $detailsData['event_time'] = $incident_time->format('H:i:s');
+            // }
+
+            $detailsData['contact_id'] = $contact->id;
+
+            $detailsData=ContactDetail::create($detailsData);
+        }
         // Handle operational teams -> save in pivot table contact_teams
         $operationalTeams = $request->input('operational_teams');
         if (!empty($operationalTeams)) {
@@ -243,43 +279,7 @@ class ContactController extends Controller
         }
 
         // Map frontend fields to contact_details and create
-        if (!empty(array_filter($detailsData))) {
 
-            // Field mappings from frontend to contact_details
-            if ($request->filled('latitude')) $detailsData['lat'] = $request->latitude;
-            if ($request->filled('longitude')) $detailsData['lon'] = $request->longitude;
-            if ($request->filled('location')) $detailsData['address'] = $request->location;
-
-            // Map number fields
-            if ($request->filled('injured_num')) $detailsData['injured_num'] = $request->injured_num;
-            if ($request->filled('number_of_vehicles')) $detailsData['car_num'] = $request->number_of_vehicles;
-            if ($request->filled('number_of_trapped')) $detailsData['prisoners_num'] = $request->number_of_trapped;
-            if ($request->filled('number_of_houses')) $detailsData['caught_homes_num'] = $request->number_of_houses;
-            if ($request->filled('trapped_in_flood_snow_num')) $detailsData['caught_in_snow_flood_num'] = $request->trapped_in_flood_snow_num;
-
-            // Combine caller names
-            if ($request->filled('caller_first_name') || $request->filled('caller_last_name')) {
-                $detailsData['caller_name'] = trim(($request->caller_first_name ?? '') . ' ' . ($request->caller_last_name ?? ''));
-            }
-
-            // Handle call_time_info - separate into date and time
-            // if ($request->filled('call_time_info')) {
-            //     $call_time = \Carbon\Carbon::parse($request->call_time_info);
-            //     $detailsData['event_date'] = $call_time->format('Y/m/d');
-            //     $detailsData['event_time'] = $call_time->format('H:i:s');
-            // }
-
-            // Handle time_of_incident
-            // if ($request->filled('time_of_incident')) {
-            //     $incident_time = \Carbon\Carbon::parse($request->time_of_incident);
-            //     $detailsData['event_date'] = $incident_time->format('Y/m/d');
-            //     $detailsData['event_time'] = $incident_time->format('H:i:s');
-            // }
-
-            $detailsData['contact_id'] = $contact->id;
-
-            $detailsData=ContactDetail::create($detailsData);
-        }
         $initialReport=null;
         if(in_array($contact->type_call,[4,5]) ){
             $data=$contact->toArray();
@@ -294,7 +294,7 @@ class ContactController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Contact created successfully',
+            'message' => 'اطلاعات با موفقیت ثبت شد',
             'data' => [
                 'contact'=>$contact->load(['details','teams' => function($q){ $q->select('team.id','title'); }]),
                 'initial_report'=>$initialReport ? $initialReport->load('details'):null
@@ -541,7 +541,7 @@ class ContactController extends Controller
     public function getStatsByMobile(Request $request)
     {
         $mobile = $request->input('mobile');
-        
+
         if (empty($mobile)) {
             return response()->json([
                 'success' => true,
@@ -571,12 +571,12 @@ class ContactController extends Controller
         $ongoing = 0;   // Incomplete (type_call = 3)
 
         $history = [];
-        
+
         foreach ($contacts as $contact) {
-            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall 
-                ? $contact->type_call->value 
+            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall
+                ? $contact->type_call->value
                 : $contact->type_call;
-            
+
             // Categorize based on type_call
             if ($typeCall == 3) {
                 $ongoing++;
@@ -629,7 +629,7 @@ class ContactController extends Controller
     public function getCallsByMobile(Request $request)
     {
         $mobile = $request->input('mobile');
-        
+
         if (empty($mobile)) {
             return response()->json([
                 'success' => true,
@@ -646,12 +646,12 @@ class ContactController extends Controller
             ->get();
 
         $history = [];
-        
+
         foreach ($contacts as $contact) {
-            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall 
-                ? $contact->type_call->value 
+            $typeCall = $contact->type_call instanceof \App\Enums\Contact\TypeCall
+                ? $contact->type_call->value
                 : $contact->type_call;
-            
+
             // Categorize based on type_call
             $status = 'completed'; // default
             if ($typeCall == 3) {

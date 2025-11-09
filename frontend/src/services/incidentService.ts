@@ -190,17 +190,24 @@ private  toEnglishDigits(str) {
       organizations_in_place_detail: formData.organizations_in_place || [],
       mission_notes: formData.mission_notes || null,
     };
+    if(apiData.contact_type == '4'){
+      apiData.type_call='3';
+    }
+    if(apiData.contact_type == '3'){
+      apiData.type_call='0';
+    }
     if(apiData.call_time_info){
       let callDateInfo=this.toEnglishDigits(apiData.call_time_info);
-      callDateInfo=callDateInfo.split(" ")
-      apiData.date_call=callDateInfo[0]
-      apiData.time_call=callDateInfo[1]
+      console.log(callDateInfo);
+      callDateInfo=new Date(callDateInfo)
+      apiData.date_call=callDateInfo.toISOString().split('T')[0]
+      apiData.time_call=`${String(callDateInfo.getHours()).padStart(2, '0')}:${String(callDateInfo.getMinutes()).padStart(2, '0')}`
     }
     if(apiData.time_of_incident){
       let callDateInfo=this.toEnglishDigits(apiData.time_of_incident);
-      callDateInfo=callDateInfo.split(" ")
-      apiData.event_date=callDateInfo[0]
-      apiData.event_time=callDateInfo[1]
+      callDateInfo=new Date(callDateInfo)
+      apiData.event_date=callDateInfo.toISOString().split('T')[0]
+      apiData.event_time=`${String(callDateInfo.getHours()).padStart(2, '0')}:${String(callDateInfo.getMinutes()).padStart(2, '0')}`
     }
     // Remove null and undefined values to reduce payload size
     // Object.keys(apiData).forEach(key => {
