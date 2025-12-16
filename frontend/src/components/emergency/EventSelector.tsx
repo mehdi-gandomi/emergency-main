@@ -11,9 +11,10 @@ interface EventSelectorProps {
   selectedEventId?: number;
   onEventSelect: (eventId: number | undefined) => void;
   filters?: EventFilters;
+  operation_status?: number; // optional override for operation status filter
 }
 
-export const EventSelector = ({ selectedEventId, onEventSelect, filters = {} }: EventSelectorProps) => {
+export const EventSelector = ({ selectedEventId, onEventSelect, filters = {}, operation_status }: EventSelectorProps) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,17 +26,19 @@ export const EventSelector = ({ selectedEventId, onEventSelect, filters = {} }: 
     // Fetch events when filters change
     const fetchEvents = async () => {
       // Only fetch if we have at least type_event_id
-      if (!filters.type_event_id) {
-        setEvents([]);
-        return;
-      }
+      // if (!filters.type_event_id) {
+      //   setEvents([]);
+      //   return;
+      // }
 
       setIsLoading(true);
       try {
         const response = await eventService.getEvents({
           ...filters,
+          ...(operation_status !== undefined ? { operation_status } : {}),
           per_page: 100, // Get more events for client-side search
         });
+        console.log(response);
         // Ensure we always set an array
         setEvents(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
@@ -47,7 +50,7 @@ export const EventSelector = ({ selectedEventId, onEventSelect, filters = {} }: 
     };
 
     fetchEvents();
-  }, [filters.type_event_id, filters.province_id, filters.branches_id, filters.operation_status]);
+  }, [filters.type_event_id, filters.province_id, filters.branches_id, filters.operation_status, operation_status]);
 
   // Client-side filtering based on search term
   const filteredEvents = (events || []).filter(event => {

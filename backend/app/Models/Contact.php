@@ -6,6 +6,7 @@ use App\Enums\Contact\NuisanceType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Enums\Contact\TypeCall;
 use App\Enums\Contact\TypeReport;
 use App\Enums\Contact\ReportEvent;
@@ -119,5 +120,17 @@ class Contact extends Model
     }
     public function operator(){
         return $this->belongsTo(Operator::class, 'operator_id', 'id');
+    }
+
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'contact_teams', 'contact_id', 'team_id')
+            ->withPivot('count');
+    }
+
+    public function vehicles(): BelongsToMany
+    {
+        return $this->belongsToMany(Vehicle::class, 'contact_vehicles', 'contact_id', 'vehicle_id')
+            ->withPivot('count');
     }
 }

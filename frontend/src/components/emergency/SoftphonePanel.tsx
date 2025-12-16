@@ -23,7 +23,8 @@ import {
   BellOff,
   AlertTriangle,
   CheckCircle,
-  Settings
+  Settings,
+  Zap
 } from "lucide-react";
 
 interface SoftphonePanelProps {
@@ -351,18 +352,46 @@ export const SoftphonePanel = ({
 
   return (
     <>
+    
     <Card className="w-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/20 shadow-2xl" dir="rtl">
       <CardHeader className="pb-4">
+      {/* <div className="">
+            <div className="bg-linear-to-r from-emerald-500 to-emerald-600 text-white px-6 py-2 rounded-full shadow-lg flex items-center space-x-2 animate-gentle-pulse">
+              <Zap className="h-4 w-4" />
+              <span className="text-sm font-medium">سیستم آماده دریافت تماس</span>
+            </div>
+          </div> */}
         {/* Title Section */}
         <CardTitle className="flex items-center space-x-3 mb-4">
           <div className="bg-linear-to-r from-blue-500 to-blue-600 p-2 rounded-lg">
             <Phone className="h-5 w-5 text-white" />
           </div>
-          <div>
-            <span className="text-lg font-bold mx-2">خط اضطراری ۱۱۲</span>
-            <div className="text-sm text-slate-500 mx-2 dark:text-slate-400">
-              خط مستقیم اورژانس
-            </div>
+          <div className="flex items-center justify-between gap-2" >
+            <div className="text-md font-bold">خط اضطراری ۱۱۲</div>
+             {/* Status Indicators */}
+        <div className="flex justify-center">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+            isCallActive 
+              ? isOnHold
+                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+              : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              isCallActive 
+                ? isOnHold 
+                  ? 'bg-yellow-500 animate-pulse' 
+                  : 'bg-emerald-500 animate-pulse'
+                : 'bg-slate-400'
+            }`} />
+            {isCallActive 
+              ? isOnHold 
+                ? 'در انتظار' 
+                : 'متصل'
+              : 'آماده'
+            }
+          </div>
+        </div>
           </div>
         </CardTitle>
         
@@ -437,16 +466,14 @@ export const SoftphonePanel = ({
         <div className="text-center space-y-4">
           {isCallActive && (
             <div className="bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-2xl p-6 border">
-              <div className="text-lg font-semibold text-slate-600 dark:text-slate-200 mb-2">
-                تماس دریافتی
-              </div>
-              <div className="text-2xl font-bold text-slate-800 dark:text-white mb-1" dir="ltr">
-                {callerNumber}
-              </div>
               <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                 <PhoneCall className="h-3 w-3 mr-1" />
                 شماره تماس گیرنده
               </Badge>
+              <div className="text-2xl font-bold text-slate-800 dark:text-white mb-1" dir="ltr">
+                {callerNumber}
+              </div>
+              
             </div>
           )}
 
@@ -610,7 +637,7 @@ export const SoftphonePanel = ({
                 </div>
                 <div>
                   <div>پاسخ دادن</div>
-                  <div className="text-sm opacity-90">تماس اضطراری</div>
+                  
                 </div>
               </div>
             </Button>
@@ -715,55 +742,12 @@ export const SoftphonePanel = ({
                 </div>
               )}
 
-              {/* Advanced Controls */}
-              <div className="bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-xl p-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-8 justify-start"
-                  >
-                    <Headphones className="h-3 w-3 mr-1" />
-                    هدفون
-                  </Button>
-                  {/* <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-8 justify-start"
-                  >
-                    <Radio className="h-3 w-3 mr-1" />
-                    بیسیم
-                  </Button> */}
-                </div>
-              </div>
+             
             </>
           )}
         </div>
 
-        {/* Status Indicators */}
-        <div className="flex justify-center">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-            isCallActive 
-              ? isOnHold
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              isCallActive 
-                ? isOnHold 
-                  ? 'bg-yellow-500 animate-pulse' 
-                  : 'bg-emerald-500 animate-pulse'
-                : 'bg-slate-400'
-            }`} />
-            {isCallActive 
-              ? isOnHold 
-                ? 'در انتظار' 
-                : 'متصل'
-              : 'آماده'
-            }
-          </div>
-        </div>
+       
             {/* Configuration Modal */}
     {showConfigModal && (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

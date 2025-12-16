@@ -14,6 +14,8 @@ import { IncidentFormData, ORGANIZATIONAL_SOURCES } from "@/types/incident";
 import { IncidentTypeFields } from "./IncidentTypeFields";
 import { VictimsList } from "./VictimsList";
 import { OperationalRecommendations } from "./OperationalRecommendations";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useValidationStore } from '@/stores/validationStore';
 
 interface IncidentDetailsSectionProps {
   formData: IncidentFormData;
@@ -28,6 +30,8 @@ export const IncidentDetailsSection = ({
   onMultiSelectChange,
   onVictimsUpdate 
 }: IncidentDetailsSectionProps) => {
+  const validation = useValidationStore();
+  
   // Only render if conditions are met
   if (formData.type_call !== '5') {
     return null;
@@ -35,241 +39,72 @@ export const IncidentDetailsSection = ({
 
   return (
     <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-      <h4 className="font-semibold text-right">
-        اطلاعات جزئیات حادثه
-      </h4>
-
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* تعداد افراد حادثه دیده */}
+        {/* نتیجه تریاژ نجات */}
         <div className="space-y-2">
-          <Label htmlFor="event_people_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد افراد حادثه دیده</span>
-            <Users className="h-4 w-4" />
+          <Label htmlFor="help_triage_result" className="text-sm font-medium text-right">
+            نتیجه تریاژ نجات
           </Label>
-          <Input
-            id="event_people_num"
-            onChange={(e) => onInputChange('event_people_num', e.target.value)}
-            value={formData.event_people_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* تعداد مصدوم */}
-        <div className="space-y-2">
-          <Label htmlFor="injured_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد مصدوم</span>
-            <Users className="h-4 w-4" />
-          </Label>
-          <Input
-            id="injured_num"
-            onChange={(e) => onInputChange('injured_num', e.target.value)}
-            value={formData.injured_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* شکایت اصلی - conditional */}
-        {formData.event_people_num == '1' && (
-          <div className="space-y-2">
-            <Label htmlFor="cc" className="text-sm font-medium flex items-center gap-2 justify-end">
-              <span>شکایت اصلی</span>
-              <Users className="h-4 w-4" />
-            </Label>
-            <Input
-              id="cc"
-              onChange={(e) => onInputChange('cc', e.target.value)}
-              value={formData.cc}
-              placeholder="شکایت اصلی"
-              className="h-10 text-right"
-              dir="ltr"
-            />
-          </div>
-        )}
-
-        {/* تعداد خودروهای درگیر */}
-        <div className="space-y-2">
-          <Label htmlFor="car_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد خودروهای درگیر</span>
-            <Users className="h-4 w-4" />
-          </Label>
-          <Input
-            id="car_num"
-            onChange={(e) => onInputChange('car_num', e.target.value)}
-            value={formData.car_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* تعداد افراد محبوس شده */}
-        <div className="space-y-2">
-          <Label htmlFor="prisoners_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد افراد محبوس شده</span>
-            <Users className="h-4 w-4" />
-          </Label>
-          <Input
-            id="prisoners_num"
-            onChange={(e) => onInputChange('prisoners_num', e.target.value)}
-            value={formData.prisoners_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* تعداد افراد گرفتار شده در سیل/ برف */}
-        <div className="space-y-2">
-          <Label htmlFor="caught_in_snow_flood_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد افراد گرفتار شده در سیل/ برف</span>
-            <Users className="h-4 w-4" />
-          </Label>
-          <Input
-            id="caught_in_snow_flood_num"
-            onChange={(e) => onInputChange('caught_in_snow_flood_num', e.target.value)}
-            value={formData.caught_in_snow_flood_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* تعداد منازل درگیر */}
-        <div className="space-y-2">
-          <Label htmlFor="caught_homes_num" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>تعداد منازل درگیر</span>
-            <Users className="h-4 w-4" />
-          </Label>
-          <Input
-            id="caught_homes_num"
-            onChange={(e) => onInputChange('caught_homes_num', e.target.value)}
-            value={formData.caught_homes_num}
-            placeholder="مثال: 2"
-            className="h-10 text-right"
-            dir="ltr"
-          />
-        </div>
-
-        {/* ارگان های حاضر در صحنه */}
-        <div className="space-y-2">
-          <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
-            ارگان های حاضر در صحنه
-          </Label>
-          <Popover>
-            <PopoverTrigger className="popover-trigger-full">
-              <Button
-                variant="outline"
-                role="combobox"
-                className="h-10 w-full justify-between text-right"
-              >
-                {formData.organizations_in_place?.length > 0 
-                  ? `${formData.organizations_in_place.length} مورد انتخاب شده`
-                  : "انتخاب نوع سازمان"
-                }
-                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="جستجو..." className="h-9" />
-                <CommandList>
-                  <CommandEmpty>موردی یافت نشد.</CommandEmpty>
-                  <CommandGroup>
-                    {ORGANIZATIONAL_SOURCES.map((option) => (
-                      <CommandItem
-                        key={option.value}
-                        value={option.value}
-                        onSelect={() => onMultiSelectChange('organizations_in_place', option.value)}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center">
-                          <Checkbox
-                            checked={formData.organizations_in_place?.includes(option.value)}
-                            className="ml-2"
-                          />
-                          <span>{option.label}</span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          
-          {/* Selected items display */}
-          {formData.organizations_in_place?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.organizations_in_place.map((item) => {
-                const option = ORGANIZATIONAL_SOURCES.find(opt => opt.value === item);
-                
-                return (
-                  <Badge key={item} variant="secondary" className="flex items-center gap-1">
-                    {option?.label}
-                    <X
-                      className="h-3 w-3 cursor-pointer hover:text-red-500"
-                      onClick={() => onMultiSelectChange('organizations_in_place', item)}
-                    />
-                  </Badge>
-                );
-              })}
-            </div>
+          <Select 
+            value={formData.help_triage_result} 
+            onValueChange={(value) => onInputChange('help_triage_result', value)}
+          >
+            <SelectTrigger 
+              className={`h-11 text-right ${validation.getError('help_triage_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              aria-invalid={!!validation.getError('help_triage_result')}
+            >
+              <SelectValue placeholder="انتخاب نتیجه تریاژ" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">اعزام تیم عملیاتی</SelectItem>
+              <SelectItem value="2">راهنمایی و هدایت توسط کارشناس</SelectItem>
+            </SelectContent>
+          </Select>
+          {validation.getError('help_triage_result') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('help_triage_result')}</p>
           )}
         </div>
+      </div>
 
-        {/* زمان وقوع حادثه */}
-        <div className="space-y-2">
-          <Label htmlFor="timeOfIncident" className="text-sm font-medium flex items-center gap-2 justify-end">
-            <span>زمان وقوع حادثه</span>
-            <Clock className="h-4 w-4" />
+      {/* Show textarea for expert guidance description if "راهنمایی و هدایت توسط کارشناس" is selected */}
+      {formData.help_triage_result === '2' && (
+        <div className="space-y-2 mt-4">
+          <Label htmlFor="mission_result" className="text-sm font-medium text-right">
+            توضیحات هدایت کارشناس *
           </Label>
-          <DatePicker
-            calendar={persian}
-            locale={persian_fa}
-            plugins={[<TimePicker position="bottom" />]}
-            format="YYYY/MM/DD HH:mm:ss"
-            placeholder="انتخاب تاریخ و زمان وقوع حادثه"
-            value={formData.time_of_incident}
-            onChange={(value) => onInputChange('time_of_incident', value?.toString() || '')}
-            style={{
-              width: "100%",
-              height: "40px",
-              padding: "8px 12px",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              fontSize: "14px",
-              direction: "rtl"
-            }}
-            containerStyle={{
-              width: "100%"
-            }}
+          <textarea
+            required
+            id="mission_result"
+            className={`w-full min-h-[100px] p-2 border rounded-md text-right ${validation.getError('mission_result') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+            value={formData.mission_result || ''}
+            onChange={(e) => onInputChange('mission_result', e.target.value)}
+            aria-invalid={!!validation.getError('mission_result')}
           />
+          {validation.getError('mission_result') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('mission_result')}</p>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Incident Type Specific Fields */}
-      <IncidentTypeFields
-        formData={formData}
-        onInputChange={onInputChange}
-      />
+      {/* Show VictimsList and OperationalRecommendations only if "اعزام تیم عملیاتی" is selected */}
+      {formData.help_triage_result === '1' && (
+        <>
+          {/* Repeatable Victims Section */}
+          <VictimsList
+            victims={formData.victims_list}
+            onUpdate={onVictimsUpdate}
+          />
 
-      {/* Repeatable Victims Section */}
-      <VictimsList
-        victims={formData.victims_list}
-        onUpdate={onVictimsUpdate}
-      />
-
-      {/* Operational Recommendations */}
-      <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-        <OperationalRecommendations
-          formData={formData}
-          onInputChange={onInputChange}
-        />
-      </div>
+          {/* Operational Recommendations */}
+          <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+            <OperationalRecommendations
+              formData={formData}
+              onInputChange={onInputChange}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

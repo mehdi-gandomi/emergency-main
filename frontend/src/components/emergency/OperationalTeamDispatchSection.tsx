@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,13 +7,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Handshake, ChevronDown, X } from "lucide-react";
+import { MapPin, Users, Handshake, ChevronDown, X, Phone } from "lucide-react";
 import { IncidentDeclarationSource, IncidentDeclarationSourceLabels } from "@/types/enums/incidentDeclarationSource";
 import { PublicSource, PublicSourceLabels } from "@/types/enums/publicSource";
 import { IncidentSourceLocation, IncidentSourceLocationLabels } from "@/types/enums/incidentSourceLocation";
 import { RelativeType, RelativeTypeLabels } from "@/types/enums/relativeType";
 import { IncidentFormData } from "@/types/incident";
 import { ORGANIZATIONAL_SOURCES } from "@/types/incident";
+import { useValidationStore } from '@/stores/validationStore';
 
 interface OperationalTeamDispatchSectionProps {
   formData: IncidentFormData;
@@ -21,21 +23,27 @@ interface OperationalTeamDispatchSectionProps {
 }
 
 const ORGANIZATIONAL_OPTIONS = [
-  // درون جمعیت
-  { value: "کد عملیاتی", label: "🔢 کد عملیاتی", type: "درون جمعیت" },
-  { value: "عوامل ستادی و شعب", label: "🏢 عوامل ستادی و شعب", type: "درون جمعیت" },
-  { value: "EOC استان معین", label: "🏢 EOC استان معین", type: "درون جمعیت" },
-  { value: "سازمان امداد و نجات", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
+  // درون جمعیت از 1
+  { value: "1", label: "🔢 تیم عملیاتی", type: "درون جمعیت" },
+  { value: "2", label: "👨‍💼 رییس شعبه", type: "درون جمعیت" },
+  { value: "3", label: "🧑‍🚒 مسئول امداد شعبه", type: "درون جمعیت" },
+  // { value: "4", label: "⏰ کشیک", type: "درون جمعیت" },
+  // { value: "5", label: "📞 کشیک ERC", type: "درون جمعیت" },
+  { value: "6", label: "👨‍⚕️ معاون امداد و نجات", type: "درون جمعیت" },
+  { value: "7", label: "🛠️ رئیس اداره عملیات", type: "درون جمعیت" },
+  { value: "8", label: "🏢 EOC استان معین", type: "درون جمعیت" },
+  { value: "9", label: "🚑 سازمان امداد و نجات", type: "درون جمعیت" },
   
-  // برون جمعیت  
-  { value: "اورژانس", label: "🚑 اورژانس", type: "برون جمعیت" },
-  { value: "آتش نشانی", label: "🔥 آتش نشانی", type: "برون جمعیت" },
-  { value: "نیروی انتظامی", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
-  { value: "پلیس راه", label: "🛣️ پلیس راه", type: "برون جمعیت" },
-  { value: "راهداری", label: "🛣️ راهداری", type: "برون جمعیت" },
-  { value: "مدیریت بحران", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
-  { value: "فرمانداری", label: "🏛️ فرمانداری", type: "برون جمعیت" },
-  { value: "فدراسیون های ورزشی", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" }
+  // برون جمعیت  از 20
+  { value: "20", label: "🚑 اورژانس", type: "برون جمعیت" },
+  { value: "21", label: "🔥 آتش نشانی", type: "برون جمعیت" },
+  { value: "22", label: "🚔 نیروی انتظامی", type: "برون جمعیت" },
+  { value: "23", label: "🛣️ پلیس راه", type: "برون جمعیت" },
+  { value: "24", label: "🛣️ راهداری", type: "برون جمعیت" },
+  { value: "25", label: "⚠️ مدیریت بحران", type: "برون جمعیت" },
+  { value: "26", label: "🏛️ فرمانداری", type: "برون جمعیت" },
+  { value: "27", label: "⚽ فدراسیون های ورزشی", type: "برون جمعیت" },
+  { value: "28", label: "سایر", type: "برون جمعیت" }
 ];
 
 export const OperationalTeamDispatchSection = ({ 
@@ -43,6 +51,8 @@ export const OperationalTeamDispatchSection = ({
   onInputChange, 
   onMultiSelectChange 
 }: OperationalTeamDispatchSectionProps) => {
+  const validation = useValidationStore();
+  
   if (formData.type_call !== '5') {
     return null;
   }
@@ -50,63 +60,8 @@ export const OperationalTeamDispatchSection = ({
   return (
     <div className="mt-4 space-y-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-r-4 border-emerald-500">
       <h4 className="font-semibold text-emerald-700 dark:text-emerald-300 text-right">
-        اطلاعات تکمیلی اعزام تیم عملیاتی
+        اطلاعات منبع اعلام حادثه
       </h4>
-      
-      {/* موقعیت منبع اعلام حادثه */}
-      <div className="space-y-2">
-        <Label htmlFor="incidentSourceLocation" className="text-sm font-medium text-right">
-          موقعیت منبع اعلام حادثه
-        </Label>
-        <RadioGroup
-          dir="rtl"
-          value={String(formData.incident_source_location)}
-          onValueChange={(value) => onInputChange('incident_source_location', parseInt(value))}
-          className="grid grid-cols-1 md:grid-cols-3 gap-2 text-right"
-        >
-          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === IncidentSourceLocation.PRESENT_AT_SCENE 
-              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-          }`}>
-            <Label htmlFor="location-present" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-              <span className="font-medium">حاضر در محل</span>
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <MapPin className="h-5 w-5 text-emerald-600" />
-              </div>
-            </Label>
-            <RadioGroupItem id="location-present" value="PRESENT_AT_SCENE" className="h-4 w-4" />
-          </div>
-          
-          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === IncidentSourceLocation.LEFT_SCENE 
-              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-          }`}>
-            <Label htmlFor="location-departed" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-              <span className="font-medium">خارج شده از محل</span>
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <MapPin className="h-5 w-5 text-emerald-600" />
-              </div>
-            </Label>
-            <RadioGroupItem id="location-departed" value="LEFT_SCENE" className="h-4 w-4" />
-          </div>
-          
-          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-            formData.incident_source_location === IncidentSourceLocation.ABSENT_FROM_SCENE 
-              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-          }`}>
-            <Label htmlFor="location-absent" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-              <span className="font-medium">عدم حضور در صحنه</span>
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <MapPin className="h-5 w-5 text-emerald-600" />
-              </div>
-            </Label>
-            <RadioGroupItem id="location-absent" value="ABSENT_FROM_SCENE" className="h-4 w-4" />
-          </div>
-        </RadioGroup>
-      </div>
 
       {/* منبع اعلام حادثه */}
       <div className="space-y-2">
@@ -116,8 +71,14 @@ export const OperationalTeamDispatchSection = ({
         <RadioGroup
           dir="rtl"
           value={String(formData.incident_declaration_source)}
-          onValueChange={(value) => onInputChange('incident_declaration_source', parseInt(value))}
-          className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
+          onValueChange={(value) => {
+            onInputChange('incident_declaration_source', parseInt(value));
+            // Validate with updated formData after a short delay to ensure state is updated
+            setTimeout(() => {
+              validation.validateField('incident_declaration_source', { ...formData, incident_declaration_source: parseInt(value) } as IncidentFormData);
+            }, 0);
+          }}
+          className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('incident_declaration_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
         >
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
             formData.incident_declaration_source === IncidentDeclarationSource.ORGANIZATIONAL 
@@ -130,7 +91,7 @@ export const OperationalTeamDispatchSection = ({
                 <Handshake className="h-5 w-5 text-blue-600" />
               </div>
             </Label>
-            <RadioGroupItem id="source-organizational" value={IncidentDeclarationSource.ORGANIZATIONAL} className="h-4 w-4" />
+            <RadioGroupItem id="source-organizational" value={String(IncidentDeclarationSource.ORGANIZATIONAL)} className="h-4 w-4" />
           </div>
           
           <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
@@ -144,15 +105,92 @@ export const OperationalTeamDispatchSection = ({
                 <Users className="h-5 w-5 text-green-600" />
               </div>
             </Label>
-            <RadioGroupItem id="source-public" value={IncidentDeclarationSource.PUBLIC} className="h-4 w-4" />
+            <RadioGroupItem id="source-public" value={String(IncidentDeclarationSource.PUBLIC)} className="h-4 w-4" />
+          </div>
+          
+          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+            formData.incident_declaration_source === IncidentDeclarationSource.ECALL 
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+          }`}>
+            <Label htmlFor="source-ecall" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+              <span className="font-medium">{IncidentDeclarationSourceLabels[IncidentDeclarationSource.ECALL]}</span>
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <Phone className="h-5 w-5 text-purple-600" />
+              </div>
+            </Label>
+            <RadioGroupItem id="source-ecall" value={String(IncidentDeclarationSource.ECALL)} className="h-4 w-4" />
           </div>
         </RadioGroup>
-        {formData.incident_declaration_source === '' && (
-          <p className="text-sm text-red-600 text-right">
-            منبع اعلام حادثه الزامی است
-          </p>
+        {validation.getError('incident_declaration_source') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('incident_declaration_source')}</p>
+        )}
+      </div>      
+      {/* موقعیت منبع اعلام حادثه */}
+      {formData.incident_declaration_source === IncidentDeclarationSource.PUBLIC && (
+        <div className="space-y-2">
+        <Label htmlFor="incidentSourceLocation" className="text-sm font-medium text-right">
+          وضعیت حضور در صحنه
+        </Label>
+        <RadioGroup
+          dir="rtl"
+          value={String(formData.incident_source_location)}
+          onValueChange={(value) => {
+            onInputChange('incident_source_location', parseInt(value));
+            setTimeout(() => {
+              validation.validateField('incident_source_location', { ...formData, incident_source_location: parseInt(value) } as IncidentFormData);
+            }, 0);
+          }}
+          className={`grid grid-cols-1 md:grid-cols-3 gap-2 text-right ${validation.getError('incident_source_location') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
+        >
+          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+            formData.incident_source_location === IncidentSourceLocation.PRESENT_AT_SCENE 
+              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+          }`}>
+            <Label htmlFor="location-present" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+              <span className="font-medium">حاضر در محل</span>
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <MapPin className="h-5 w-5 text-emerald-600" />
+              </div>
+            </Label>
+            <RadioGroupItem id="location-present" value={String(IncidentSourceLocation.PRESENT_AT_SCENE)} className="h-4 w-4" />
+          </div>
+          
+          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+            formData.incident_source_location === IncidentSourceLocation.LEFT_SCENE 
+              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+          }`}>
+            <Label htmlFor="location-departed" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+              <span className="font-medium">خارج شده از محل</span>
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <MapPin className="h-5 w-5 text-emerald-600" />
+              </div>
+            </Label>
+            <RadioGroupItem id="location-departed" value={String(IncidentSourceLocation.LEFT_SCENE)} className="h-4 w-4" />
+          </div>
+          
+          <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+            formData.incident_source_location === IncidentSourceLocation.ABSENT_FROM_SCENE 
+              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+              : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+          }`}>
+            <Label htmlFor="location-absent" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+              <span className="font-medium">عدم حضور در صحنه</span>
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <MapPin className="h-5 w-5 text-emerald-600" />
+              </div>
+            </Label>
+            <RadioGroupItem id="location-absent" value={String(IncidentSourceLocation.ABSENT_FROM_SCENE)} className="h-4 w-4" />
+          </div>
+        </RadioGroup>
+        {validation.getError('incident_source_location') && (
+          <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('incident_source_location')}</p>
         )}
       </div>
+      )}
+
 
       {/* Organizational Source Details */}
       {formData.incident_declaration_source === IncidentDeclarationSource.ORGANIZATIONAL && (
@@ -162,8 +200,23 @@ export const OperationalTeamDispatchSection = ({
           <Label htmlFor="organizationalType" className="text-sm font-medium text-right">
             نوع
           </Label>
-          <Select onValueChange={(value) => onInputChange('organizational_type', value)}>
-            <SelectTrigger className="h-10">
+          <Select 
+            onValueChange={(value) => {
+              onInputChange('organizational_type', value);
+              setTimeout(() => {
+                validation.validateField('organizational_type', { ...formData, organizational_type: value } as IncidentFormData);
+              }, 0);
+            }}
+            onOpenChange={(open) => {
+              if (!open && formData) {
+                validation.validateField('organizational_type', formData);
+              }
+            }}
+          >
+            <SelectTrigger 
+              className={`h-10 ${validation.getError('organizational_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              aria-invalid={!!validation.getError('organizational_type')}
+            >
               <SelectValue placeholder="انتخاب نوع" />
             </SelectTrigger>
             <SelectContent>
@@ -171,17 +224,27 @@ export const OperationalTeamDispatchSection = ({
               <SelectItem value="برون جمعیت">برون جمعیت</SelectItem>
             </SelectContent>
           </Select>
+          {validation.getError('organizational_type') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('organizational_type')}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="organizationalSource" className="text-sm font-medium text-right">
             نوع سازمان
           </Label>
-          <Popover>
+          <Popover
+            onOpenChange={(open) => {
+              if (!open && formData) {
+                validation.validateField('organizational_source', formData);
+              }
+            }}
+          >
             <PopoverTrigger className="popover-trigger-full">
               <Button
                 variant="outline"
                 role="combobox"
-                className="h-10 w-full justify-between text-right"
+                className={`h-10 w-full justify-between text-right ${validation.getError('organizational_source') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                aria-invalid={!!validation.getError('organizational_source')}
               >
                 {formData.organizational_source.length > 0 
                   ? `${formData.organizational_source.length} مورد انتخاب شده`
@@ -202,7 +265,12 @@ export const OperationalTeamDispatchSection = ({
                         <CommandItem
                           key={option.value}
                           value={option.value}
-                          onSelect={() => onMultiSelectChange('organizational_source', option.value)}
+                          onSelect={() => {
+                            onMultiSelectChange('organizational_source', option.value);
+                            setTimeout(() => {
+                              validation.validateField('organizational_source', formData);
+                            }, 0);
+                          }}
                           className="flex items-center justify-between"
                         >
                           <div className="flex items-center">
@@ -239,7 +307,31 @@ export const OperationalTeamDispatchSection = ({
               })}
             </div>
           )}
+          {validation.getError('organizational_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('organizational_source')}</p>
+          )}
         </div>
+        </div>
+      )}
+
+      {/* Custom Organizational Source Input - shown when "سایر" (value "28") is selected */}
+      {formData.organizational_source && formData.organizational_source.includes("28") && (
+        <div className="space-y-2">
+          <Label htmlFor="custom_organizational_source" className="text-sm font-medium text-right">
+            سایر (نوع سازمان) *
+          </Label>
+          <Input
+            id="custom_organizational_source"
+            placeholder="لطفاً نوع سازمان را وارد کنید"
+            value={formData.custom_organizational_source || ''}
+            onChange={(e) => onInputChange('custom_organizational_source', e.target.value)}
+            onBlur={() => validation.validateField('custom_organizational_source', formData)}
+            aria-invalid={!!validation.getError('custom_organizational_source')}
+            className={`h-10 text-right ${validation.getError('custom_organizational_source') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+          />
+          {validation.getError('custom_organizational_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('custom_organizational_source')}</p>
+          )}
         </div>
       )}
 
@@ -247,29 +339,20 @@ export const OperationalTeamDispatchSection = ({
       {formData.incident_declaration_source === IncidentDeclarationSource.PUBLIC && (
         <div className="space-y-2">
           <Label htmlFor="public_source" className="text-sm font-medium text-right">
-            نوع منبع مردمی
+            نسبت تماس گیرنده با فرد حادثه دیده
           </Label>
           <RadioGroup
             dir="rtl"
             value={String(formData.public_source)}
-          onValueChange={(value) => onInputChange('public_source', parseInt(value))}
-            className="grid grid-cols-1 md:grid-cols-2 gap-2 text-right"
+            onValueChange={(value) => {
+              onInputChange('public_source', parseInt(value));
+              setTimeout(() => {
+                validation.validateField('public_source', { ...formData, public_source: parseInt(value) } as IncidentFormData);
+              }, 0);
+            }}
+            className={`grid grid-cols-1 md:grid-cols-2 gap-2 text-right ${validation.getError('public_source') ? 'rounded-lg border-2 border-red-500 p-2' : ''}`}
           >
-            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === PublicSource.VICTIM 
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
-            }`}>
-              <Label htmlFor="public-injured" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">{PublicSourceLabels[PublicSource.VICTIM]}</span>
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <Users className="h-5 w-5 text-green-600" />
-                </div>
-              </Label>
-              <RadioGroupItem id="public-injured" value={PublicSource.VICTIM} className="h-4 w-4" />
-            </div>
-            
-            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+              <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
               formData.public_source === PublicSource.PASSERBY 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
@@ -280,9 +363,22 @@ export const OperationalTeamDispatchSection = ({
                   <MapPin className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-present" value={PublicSource.PASSERBY} className="h-4 w-4" />
+              <RadioGroupItem id="public-present" value={String(PublicSource.PASSERBY)} className="h-4 w-4" />
             </div>
-            
+            <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
+              formData.public_source === PublicSource.RELATIVES 
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                 : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
+            }`}>
+              <Label htmlFor="public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                <span className="font-medium">{PublicSourceLabels[PublicSource.RELATIVES]}</span>
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <Users className="h-5 w-5 text-green-600" />
+                </div>
+              </Label>
+              <RadioGroupItem id="public-relatives" value={String(PublicSource.RELATIVES)} className="h-4 w-4" />
+            </div>
+              
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
               formData.public_source === PublicSource.FRIENDS 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
@@ -294,23 +390,30 @@ export const OperationalTeamDispatchSection = ({
                   <MapPin className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-departed" value={PublicSource.FRIENDS} className="h-4 w-4" />
+              <RadioGroupItem id="public-departed" value={String(PublicSource.FRIENDS)} className="h-4 w-4" />
             </div>
             
             <div className={`flex flex-row-reverse items-center justify-between gap-3 rounded-xl border-2 p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
-              formData.public_source === PublicSource.RELATIVES 
+              formData.public_source === PublicSource.VICTIM 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                : 'border-slate-700 bg-background hover:border-slate-300'
+                : 'border-slate-200 dark:border-slate-700 bg-background hover:border-slate-300'
             }`}>
-              <Label htmlFor="public-relatives" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
-                <span className="font-medium">{PublicSourceLabels[PublicSource.RELATIVES]}</span>
+              <Label htmlFor="public-injured" className="flex-1 cursor-pointer flex items-center gap-3 justify-between">
+                <span className="font-medium">{PublicSourceLabels[PublicSource.VICTIM]}</span>
                 <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                   <Users className="h-5 w-5 text-green-600" />
                 </div>
               </Label>
-              <RadioGroupItem id="public-relatives" value={PublicSource.RELATIVES} className="h-4 w-4" />
+              <RadioGroupItem id="public-injured" value={String(PublicSource.VICTIM)} className="h-4 w-4" />
             </div>
-          </RadioGroup>
+            
+          
+          
+          
+            </RadioGroup>
+          {validation.getError('public_source') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('public_source')}</p>
+          )}
 
           {/* Relative Type Details */}
           {formData.public_source === PublicSource.RELATIVES && (
@@ -318,18 +421,38 @@ export const OperationalTeamDispatchSection = ({
               <Label htmlFor="relative_type" className="text-sm font-medium text-right">
                 نوع خویشاوندی
               </Label>
-              <Select onValueChange={(value) => onInputChange('relative_type', value)}>
-                <SelectTrigger className="h-10">
+              <Select 
+                onValueChange={(value) => {
+                  onInputChange('relative_type', parseInt(value));
+                  setTimeout(() => {
+                    validation.validateField('relative_type', formData);
+                  }, 0);
+                }}
+                onOpenChange={(open) => {
+                  if (!open && formData) {
+                    validation.validateField('relative_type', formData);
+                  }
+                }}
+              >
+                <SelectTrigger 
+                  className={`h-10 ${validation.getError('relative_type') ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  aria-invalid={!!validation.getError('relative_type')}
+                >
                   <SelectValue placeholder="انتخاب نوع خویشاوندی" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(RelativeType).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {RelativeTypeLabels[type]}
-                    </SelectItem>
-                  ))}
+                  {Object.values(RelativeType)
+                    .filter((type): type is RelativeType => typeof type === 'number')
+                    .map((type) => (
+                      <SelectItem key={type} value={String(type)}>
+                        {RelativeTypeLabels[type]}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              {validation.getError('relative_type') && (
+                <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('relative_type')}</p>
+              )}
             </div>
           )}
         </div>

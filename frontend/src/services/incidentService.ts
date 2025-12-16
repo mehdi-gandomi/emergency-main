@@ -152,6 +152,7 @@ private  toEnglishDigits(str) {
       incident_declaration_source: formData.incident_declaration_source || null,
       organizational_source: formData.organizational_source || [],
       organizational_type: formData.organizational_type || null,
+      custom_organizational_source: formData.custom_organizational_source || null,
       public_source: formData.public_source || null,
       ratio: formData.relative_type || null,
       injured_num: formData.injured_num ? parseInt(formData.injured_num) : null,
@@ -179,23 +180,34 @@ private  toEnglishDigits(str) {
       operational_teams: formData.operational_teams || [],
       mission_types: formData.mission_types || [],
       required_vehicles: formData.required_vehicles || [],
-      needs_other_provinces: formData.needs_other_provinces || false,
+      needs_other_provinces: formData.needs_other_provinces === "yes",
+      provinces_assisting: formData.provinces_assisting || [],
+      // cooperating organizations presence flag maps to integer expected by backend
+      organizations_in_place: formData.cooperating_orgs_present == "yes" ? 1 : 0,
+      cooperating_organizations_needed: formData.cooperating_organizations_needed || [],
       cc: formData.cc || null,
       trapped_in_flood_snow_num_detail: formData.trapped_in_flood_snow_num || null,
       organizations_in_place_detail: formData.organizations_in_place || [],
       mission_notes: formData.mission_notes || null,
     };
+    if(apiData.contact_type == '4'){
+      apiData.type_call='3';
+    }
+    if(apiData.contact_type == '3'){
+      apiData.type_call='0';
+    }
     if(apiData.call_time_info){
       let callDateInfo=this.toEnglishDigits(apiData.call_time_info);
-      callDateInfo=callDateInfo.split(" ")
-      apiData.date_call=callDateInfo[0]
-      apiData.time_call=callDateInfo[1]
+      console.log(callDateInfo);
+      callDateInfo=new Date(callDateInfo)
+      apiData.date_call=callDateInfo.toISOString().split('T')[0]
+      apiData.time_call=`${String(callDateInfo.getHours()).padStart(2, '0')}:${String(callDateInfo.getMinutes()).padStart(2, '0')}`
     }
     if(apiData.time_of_incident){
       let callDateInfo=this.toEnglishDigits(apiData.time_of_incident);
-      callDateInfo=callDateInfo.split(" ")
-      apiData.event_date=callDateInfo[0]
-      apiData.event_time=callDateInfo[1]
+      callDateInfo=new Date(callDateInfo)
+      apiData.event_date=callDateInfo.toISOString().split('T')[0]
+      apiData.event_time=`${String(callDateInfo.getHours()).padStart(2, '0')}:${String(callDateInfo.getMinutes()).padStart(2, '0')}`
     }
     // Remove null and undefined values to reduce payload size
     // Object.keys(apiData).forEach(key => {
@@ -273,6 +285,104 @@ private  toEnglishDigits(str) {
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Network error occurred',
+      };
+    }
+  }
+
+  /**
+   * Update existing contact with full form data
+   */
+  async updateContact(contactId: number, formData: IncidentFormData): Promise<ApiResponse<ContactResponse>> {
+    try {
+      const transformedData = this.transformFormData(formData);
+      
+      console.log('Updating contact data:', transformedData);
+      
+      const response = await fetch(`${this.baseURL}/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(transformedData),
+      });
+
+      return await this.handleResponse<ContactResponse>(response);
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error occurred',
+      };
+    }
+  }
+
+  /**
+   * Get contact statistics by mobile number
+   */
+  async getContactStatsByMobile(mobile: string): Promise<ApiResponse<{
+    number: string;
+    total: number;
+    completed: number;
+    missed: number;
+    ongoing: number;
+    history: Array<{
+      id: string;
+      time: string;
+      duration: string;
+      type: 'incoming' | 'outgoing';
+      number: string;
+      status: 'completed' | 'missed' | 'ongoing';
+      location?: string;
+    }>;
+  }>> {
+    try {
+      const response = await fetch(`${this.baseURL}/contacts/stats/by-mobile?mobile=${encodeURIComponent(mobile)}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching contact stats:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error occurred',
+        data: {
+          number: mobile,
+          total: 0,
+          completed: 0,
+          missed: 0,
+          ongoing: 0,
+          history: []
+        }
+      };
+    }
+  }
+
+  /**
+   * Get all calls (history) by mobile number
+   */
+  async getCallsByMobile(mobile: string): Promise<ApiResponse<Array<{
+    id: string;
+    time: string;
+    duration: string;
+    type: 'incoming' | 'outgoing';
+    number: string;
+    status: 'completed' | 'missed' | 'ongoing';
+    location?: string;
+    date?: string;
+  }>>> {
+    try {
+      const response = await fetch(`${this.baseURL}/contacts/calls/by-mobile?mobile=${encodeURIComponent(mobile)}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching calls by mobile:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error occurred',
+        data: []
       };
     }
   }

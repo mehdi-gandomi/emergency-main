@@ -34,9 +34,27 @@ import { Link } from "react-router-dom";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { ChevronLeft, ChevronRight } from "lucide-react"; // Add these imports
+import useAppStore from "@/stores/appStore";
 
 export const EmergencyDashboard = () => {
+  const { syncServerTime, getFormattedServerTime } = useAppStore();
   const [isCallActive, setIsCallActive] = useState(false);
+  const [mobileStats, setMobileStats] = useState<{
+    number: string;
+    total: number;
+    completed: number;
+    missed: number;
+    ongoing: number;
+    history: Array<{
+      id: string;
+      time: string;
+      duration: string;
+      type: 'incoming' | 'outgoing';
+      number: string;
+      status: 'completed' | 'missed' | 'ongoing';
+      location?: string;
+    }>;
+  } | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -44,6 +62,10 @@ export const EmergencyDashboard = () => {
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const { toast } = useToast();
+  const [operatorName, setOperatorName] = useState<string>("");
+  const [operatorFamily, setOperatorFamily] = useState<string>("");
+  const [operatorProvince, setOperatorProvince] = useState<string>("");
+  const [operatorCity, setOperatorCity] = useState<string>("");
   
   // Keyboard shortcuts for panel collapse
   useEffect(() => {
@@ -89,6 +111,36 @@ export const EmergencyDashboard = () => {
           document.documentElement.classList.add('dark');
         }
       }
+    } catch {}
+  }, []);
+
+  // Load operator/admin and shift data for header (name, province, city)
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const shiftStr = localStorage.getItem('shift_data');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const shift = shiftStr ? JSON.parse(shiftStr) : null;
+      const type = (user?.type || user?.role || '').toString().toLowerCase();
+
+      if (type === 'admin') {
+        const name = user?.name || 'ادمین';
+        setOperatorName(name);
+        setOperatorFamily('');
+        setOperatorProvince('');
+        setOperatorCity('');
+        return;
+      }
+
+      const name = shift?.name || user?.personnel?.name || user?.name || "";
+      const family = shift?.family || user?.personnel?.family || user?.family || "";
+      const provinceTitle = shift?.province || user?.personnel?.province?.title || "";
+      const cityTitle = shift?.city || shift?.center || user?.personnel?.city?.title || "";
+
+      setOperatorName(name);
+      setOperatorFamily(family);
+      setOperatorProvince(provinceTitle);
+      setOperatorCity(cityTitle);
     } catch {}
   }, []);
 
@@ -166,27 +218,30 @@ export const EmergencyDashboard = () => {
     window.location.href = '/login';
   };
 
-  // Fetch profile on mount
+  // Fetch profile on mount and sync server time
   useEffect(() => {
     (async () => {
       try {
-        const me = await api.get('/user');
-        try { localStorage.setItem('user', JSON.stringify(me.data)); } catch {}
+        const res = (await api.get('/user')) as any;
+        const me = res && (res.data ?? res);
+        try { localStorage.setItem('user', JSON.stringify(me)); } catch {}
       } catch (e) {
         // token invalid -> redirect to login
         // window.location.href = '/login';
       }
+      // Sync server time on mount
+      await syncServerTime();
     })();
-  }, []);
+  }, [syncServerTime]);
 
-  // Live time (updates every second)
-  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('fa-IR'));
+  // Live server time (updates every second)
+  const [currentTime, setCurrentTime] = useState<string>(getFormattedServerTime());
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('fa-IR'));
+      setCurrentTime(getFormattedServerTime());
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [getFormattedServerTime]);
   const activeIncidents = 3;
   const pendingCalls = 2;
   const operatorsOnline = 8;
@@ -201,9 +256,9 @@ export const EmergencyDashboard = () => {
         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.1)_25%,rgba(68,68,68,.1)_50%,transparent_50%,transparent_75%,rgba(68,68,68,.1)_75%)] bg-size-[8px_8px] animate-pulse"></div>
       </div>
 
-      <div className="relative z-10 p-6 lg:p-8 space-y-8 lg:space-y-10  mx-auto">
+      <div className="relative z-10 p-3 lg:p-4 space-y-8 lg:space-y-10  mx-auto">
         {/* Enhanced Header */}
-        <header className="relative">
+        <header className="relative !mb-3">
           {/* Glass Card Effect */}
           <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-6">
             <div className="flex flex-col gap-6">
@@ -214,12 +269,24 @@ export const EmergencyDashboard = () => {
                     <Shield className="h-8 w-8 text-white" />
                   </div>
                   <div className="text-right">
-                    <h1 className="text-3xl px-4 md:text-4xl font-bold bg-linear-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">
+                    <h1 className="text-2xl px-4 md:text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">
                       مرکز پاسخگویی تماس های اضطراری ۱۱۲
                     </h1>
-                    <p className="text-slate-600 px-4 dark:text-slate-400 text-base md:text-lg">
-                      کنسول دریافت تماس اضطراری
-                    </p>
+                 
+                    {(operatorName || operatorFamily || operatorProvince || operatorCity) && (
+                      <div className="px-4 mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1 bg-white/60 dark:bg-slate-700/60 border border-white/20 rounded-full px-2 py-0.5">
+                          <User className="h-3.5 w-3.5" />
+                          {`${operatorName} ${operatorFamily}`.trim() || 'اپراتور'}
+                        </span>
+                        {(operatorProvince || operatorCity) && (
+                          <span className="inline-flex items-center gap-1 bg-white/60 dark:bg-slate-700/60 border border-white/20 rounded-full px-2 py-0.5">
+                            <Shield className="h-3.5 w-3.5" />
+                            {[operatorProvince, operatorCity].filter(Boolean).join('، ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   </div>
                   <div className="flex gap-2">
@@ -308,7 +375,7 @@ export const EmergencyDashboard = () => {
               </div>
 
               {/* Status Cards under title - All in one row */}
-              <div className="grid w-full items-stretch gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+              {/* <div className="grid w-full items-stretch gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
                 <div className="bg-linear-to-br from-emerald-500/10 to-emerald-600/10 border border-emerald-200/50 rounded-lg p-2 text-center backdrop-blur-sm cursor-pointer hover:shadow-lg transition-all">
                   <div className="flex items-center justify-center mb-1">
                     <CheckCircle className="h-4 w-4 text-emerald-600" />
@@ -393,7 +460,7 @@ export const EmergencyDashboard = () => {
                   </div>
                 </div>
 
-                {/* Communication Channels */}
+                
                 <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-2 backdrop-blur-sm border border-white/20">
                   <div className="text-center space-y-1">
                     <div className="text-xs text-slate-600 dark:text-slate-400">کانال های ارتباطی</div>
@@ -410,21 +477,16 @@ export const EmergencyDashboard = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
-          {/* Status Bar */}
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="bg-linear-to-r from-emerald-500 to-emerald-600 text-white px-6 py-2 rounded-full shadow-lg flex items-center space-x-2 animate-gentle-pulse">
-              <Zap className="h-4 w-4" />
-              <span className="text-sm font-medium">سیستم آماده دریافت تماس</span>
-            </div>
-          </div>
+          
+          
         </header>
         
         {/* Main Dashboard Grid - RTL order: Softphone (right), Form (center), Side (left) */}
-        <div className={`grid gap-6 lg:gap-8 transition-all duration-500 ease-in-out ${
+        <div className={`grid gap-3 lg:gap-4 transition-all duration-500 ease-in-out ${
           leftPanelCollapsed 
             ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'
             : 'grid-cols-1 lg:grid-cols-3 xl:grid-cols-4'
@@ -471,7 +533,7 @@ export const EmergencyDashboard = () => {
               ? 'col-span-1 lg:col-span-1 xl:col-span-2'
               : 'col-span-1 lg:col-span-1 xl:col-span-2'
             } order-3 lg:order-2`}>
-            <IncidentForm />
+            <IncidentForm onMobileStatsChange={setMobileStats} />
           </div>
 
           {/* Side Cards - Left on desktop */}
@@ -497,38 +559,32 @@ export const EmergencyDashboard = () => {
             {leftPanelCollapsed ? (
               <>
                 {/* Fixed positioned collapsed panel on the left */}
-                <div className="fixed left-4 top-1/2 transform -translate-y-1/2 z-40 flex flex-col bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl w-16 items-center justify-center hover:shadow-3xl transition-all duration-300 cursor-pointer group animate-in slide-in-from-left-5"
+                <div className="fixed left-4 top-1/2 transform -translate-y-1/2 z-40 flex flex-col bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-full border border-white/20 shadow-2xl w-12 h-12 items-center justify-center hover:shadow-3xl transition-all duration-300 cursor-pointer group animate-in slide-in-from-left-5"
                      onClick={() => setLeftPanelCollapsed(false)}
                      title="کلیک کنید تا کارت های جانبی را باز کنید (Ctrl+Shift+L)">
-                  <div className="py-3 space-y-2">
-                    <Activity className="h-5 w-5 text-green-600 dark:text-green-400 group-hover:scale-125 transition-transform mx-auto" />
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse mx-auto opacity-70 shadow-lg"></div>
-                  </div>
-                  {/* <div className="text-xs text-slate-600 dark:text-slate-300 transform rotate-90 whitespace-nowrap py-3 font-medium">
-                    کارت ها
-                  </div> */}
+                  <ChevronRight className="h-5 w-5 text-slate-700 dark:text-slate-200 group-hover:text-green-600 dark:group-hover:text-green-400 group-hover:scale-110 transition-all duration-300" />
                 </div>
                 {/* Empty div to maintain grid structure when collapsed */}
                 <div className="hidden"></div>
               </>
             ) : (
               <div className="transition-all duration-500 opacity-100 animate-in slide-in-from-left-3">
-                <SideCards />
+                <SideCards mobileStats={mobileStats} />
               </div>
             )}
           </div>
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <IncidentTypeChart />
           <RealTimeMetricsChart />
-        </div>
+        </div> */}
 
         {/* Dispatcher Section - Bottom */}
-        <div className="w-full">
+        {/* <div className="w-full">
           <DispatcherSection />
-        </div>
+        </div> */}
 
         {/* Floating Action Buttons */}
         <div className="fixed bottom-8 right-8 z-50 space-y-3">

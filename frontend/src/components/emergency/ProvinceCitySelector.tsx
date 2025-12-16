@@ -1,10 +1,16 @@
 // src/components/emergency/ProvinceCitySelector.tsx
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { locationService, Province, City, Town, Village } from "@/services/locationService";
 import { useToast } from "@/hooks/use-toast";
+import { useValidationStore } from '@/stores/validationStore';
+import { IncidentFormData } from '@/types/incident';
+import { ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProvinceCitySelectorProps {
   onInputChange: (field: string, value: string) => void;
@@ -13,6 +19,7 @@ interface ProvinceCitySelectorProps {
   townId?: string;
   villageId?: string;
   onLocationSelected?: (lat: number, lng: number) => void;
+  formData?: Partial<IncidentFormData>;
 }
 
 export const ProvinceCitySelector = ({
@@ -22,7 +29,9 @@ export const ProvinceCitySelector = ({
   townId = "",
   villageId = "",
   onLocationSelected,
+  formData,
 }: ProvinceCitySelectorProps) => {
+  const validation = useValidationStore();
   const [selectedType, setSelectedType] = useState<'town' | 'village'>('town');
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -43,6 +52,28 @@ export const ProvinceCitySelector = ({
       try {
         const data = await locationService.getProvinces();
         setProvinces(data);
+        
+        // After provinces load, set province_id from localStorage if not already set
+        if (!provinceId && formData) {
+          try {
+            const userDataStr = localStorage.getItem('user');
+            if (userDataStr) {
+              const userData = JSON.parse(userDataStr);
+              const userProvinceId = userData?.personnel?.province_id;
+              if (userProvinceId) {
+                // Check if the province exists in the loaded provinces
+                const provinceExists = data.some(p => p.id === userProvinceId || p.id.toString() === String(userProvinceId));
+                if (provinceExists) {
+                  setTimeout(() => {
+                    onInputChange('province_id', String(userProvinceId));
+                  }, 0);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error reading user data from localStorage:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to load provinces:', error);
         toast({
@@ -56,6 +87,7 @@ export const ProvinceCitySelector = ({
     };
 
     loadProvinces();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
   // Load cities when province changes
@@ -70,6 +102,28 @@ export const ProvinceCitySelector = ({
       try {
         const data = await locationService.getCities(parseInt(provinceId));
         setCities(data);
+        
+        // After cities load, set city_id from localStorage if not already set
+        if (!cityId && formData) {
+          try {
+            const userDataStr = localStorage.getItem('user');
+            if (userDataStr) {
+              const userData = JSON.parse(userDataStr);
+              const userCityId = userData?.personnel?.city_id;
+              if (userCityId) {
+                // Check if the city exists in the loaded cities and matches the selected province
+                const cityExists = data.some(c => c.id === userCityId || c.id.toString() === String(userCityId));
+                if (cityExists) {
+                  setTimeout(() => {
+                    onInputChange('city_id', String(userCityId));
+                  }, 0);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error reading user data from localStorage:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to load cities:', error);
         toast({
@@ -83,6 +137,7 @@ export const ProvinceCitySelector = ({
     };
 
     loadCities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provinceId, toast]);
 
   // Load towns and villages when city changes
@@ -102,6 +157,65 @@ export const ProvinceCitySelector = ({
         ]);
         setTowns(townsData);
         setVillages(villagesData);
+        
+        // After towns load, set town_id from localStorage if not already set
+        if (!townId && formData) {
+          try {
+            const userDataStr = localStorage.getItem('user');
+            if (userDataStr) {
+              const userData = JSON.parse(userDataStr);
+              const userTownId = userData?.personnel?.town_id;
+              if (userTownId) {
+                // Check if the town exists in the loaded towns
+                const townExists = townsData.some(t => t.id === userTownId || t.id.toString() === String(userTownId));
+                if (townExists) {
+                  const selectedTown = townsData.find(t => t.id === userTownId || t.id.toString() === String(userTownId));
+                  
+                  setTimeout(() => {
+                    // Set selected type to 'town' so the town selector is shown
+                    setSelectedType('town');
+                    onInputChange('town_id', String(userTownId));
+                    
+                    // If town has coordinates, set map center
+                    if (selectedTown && selectedTown.lat && selectedTown.lon && onLocationSelected) {
+                      // Small delay to ensure state is updated
+                      setTimeout(() => {
+                        onLocationSelected(selectedTown.lat, selectedTown.lon);
+                      }, 100);
+                    }
+                  }, 0);
+                } else {
+                  // If town_id not found in loaded towns, use city coordinates as fallback
+                  const selectedCity = cities.find(c => c.id.toString() === cityId);
+                  if (selectedCity && selectedCity.lat && selectedCity.lon && onLocationSelected) {
+                    setTimeout(() => {
+                      onLocationSelected(selectedCity.lat!, selectedCity.lon!);
+                    }, 100);
+                  }
+                }
+              } else {
+                // If user doesn't have town_id, use city coordinates as fallback
+                const selectedCity = cities.find(c => c.id.toString() === cityId);
+                if (selectedCity && selectedCity.lat && selectedCity.lon && onLocationSelected) {
+                  setTimeout(() => {
+                    onLocationSelected(selectedCity.lat!, selectedCity.lon!);
+                  }, 100);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error reading user data from localStorage:', error);
+          }
+        } else if (cityId && onLocationSelected) {
+          // If townId is already set but we want to ensure map is centered, 
+          // or if townId was manually cleared, use city coordinates
+          const selectedCity = cities.find(c => c.id.toString() === cityId);
+          if (selectedCity && selectedCity.lat && selectedCity.lon) {
+            setTimeout(() => {
+              onLocationSelected(selectedCity.lat!, selectedCity.lon!);
+            }, 100);
+          }
+        }
       } catch (error) {
         console.error('Failed to load towns/villages:', error);
         toast({
@@ -115,6 +229,7 @@ export const ProvinceCitySelector = ({
     };
 
     loadTownsAndVillages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityId, toast]);
 
   const handleTypeChange = (type: 'town' | 'village') => {
@@ -201,67 +316,131 @@ export const ProvinceCitySelector = ({
         {/* Province Selector */}
         <div className="space-y-2">
           <Label htmlFor="province-selector" className="text-sm font-medium text-right">
-            استان
+            استان *
           </Label>
-          <Select 
-            value={provinceId} 
-            onValueChange={(value) => {
-              onInputChange('province_id', value);
-              // Reset city and locations when province changes
-              onInputChange('city_id', '');
-              onInputChange('town_id', '');
-              onInputChange('village_id', '');
-            }}
-          >
-            <SelectTrigger id="province-selector" className="h-11">
-              <SelectValue placeholder="انتخاب استان" />
-            </SelectTrigger>
-            <SelectContent>
-              {loading.provinces && (
-                <SelectItem value="loading" disabled>
-                  در حال بارگیری...
-                </SelectItem>
-              )}
-              {provinces.map((province) => (
-                <SelectItem key={`province-${province.id}`} value={province.id.toString()}>
-                  {province.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger className="popover-trigger-full">
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-11 w-full justify-between text-right",
+                  validation.getError('province_id') ? 'border-red-500 focus-visible:ring-red-500' : ''
+                )}
+                aria-invalid={!!validation.getError('province_id')}
+                onBlur={() => {
+                  if (formData) {
+                    validation.validateField('province_id' as any, formData as IncidentFormData);
+                  }
+                }}
+              >
+                {provinceId
+                  ? provinces.find((province) => province.id.toString() === provinceId)?.title || "انتخاب استان"
+                  : "انتخاب استان"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="popover-content-full p-0" align="start">
+              <Command shouldFilter={true}>
+                <CommandInput placeholder="جستجو استان..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>
+                    {loading.provinces ? "در حال بارگیری..." : "استانی یافت نشد"}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {provinces.map((province) => (
+                      <CommandItem
+                        key={`province-${province.id}`}
+                        value={province.title}
+                        onSelect={() => {
+                          onInputChange('province_id', province.id.toString());
+                          // Reset city and locations when province changes
+                          onInputChange('city_id', '');
+                          onInputChange('town_id', '');
+                          onInputChange('village_id', '');
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "ml-2 h-4 w-4",
+                            provinceId === province.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {province.title}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          {validation.getError('province_id') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('province_id')}</p>
+          )}
         </div>
 
         {/* City Selector */}
         <div className="space-y-2">
           <Label htmlFor="city-selector" className="text-sm font-medium text-right">
-            شهرستان
+            شهرستان *
           </Label>
-          <Select 
-            value={cityId} 
-            onValueChange={(value) => {
-              onInputChange('city_id', value);
-              // Reset town and village when city changes
-              onInputChange('town_id', '');
-              onInputChange('village_id', '');
-            }}
-            disabled={!provinceId}
-          >
-            <SelectTrigger id="city-selector" className="h-11">
-              <SelectValue placeholder="انتخاب شهرستان" />
-            </SelectTrigger>
-            <SelectContent>
-              {loading.cities && (
-                <SelectItem value="loading" disabled>
-                  در حال بارگیری...
-                </SelectItem>
-              )}
-              {cities.map((city) => (
-                <SelectItem key={`city-${city.id}`} value={city.id.toString()}>
-                  {city.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger className="popover-trigger-full">
+              <Button
+                variant="outline"
+                disabled={!provinceId}
+                className={cn(
+                  "h-11 w-full justify-between text-right",
+                  validation.getError('city_id') ? 'border-red-500 focus-visible:ring-red-500' : ''
+                )}
+                aria-invalid={!!validation.getError('city_id')}
+                onBlur={() => {
+                  if (formData) {
+                    validation.validateField('city_id' as any, formData as IncidentFormData);
+                  }
+                }}
+              >
+                {cityId
+                  ? cities.find((city) => city.id.toString() === cityId)?.title || "انتخاب شهرستان"
+                  : "انتخاب شهرستان"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="popover-content-full p-0" align="start">
+              <Command shouldFilter={true}>
+                <CommandInput placeholder="جستجو شهرستان..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>
+                    {loading.cities ? "در حال بارگیری..." : "شهرستانی یافت نشد"}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {cities.map((city) => (
+                      <CommandItem
+                        key={`city-${city.id}`}
+                        value={city.title}
+                        onSelect={() => {
+                          onInputChange('city_id', city.id.toString());
+                          // Reset town and village when city changes
+                          onInputChange('town_id', '');
+                          onInputChange('village_id', '');
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "ml-2 h-4 w-4",
+                            cityId === city.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {city.title}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          {validation.getError('city_id') && (
+            <p className="text-red-600 text-xs mt-1 text-right">{validation.getError('city_id')}</p>
+          )}
         </div>
 
         {/* Location Type Toggle and Selector */}
@@ -275,7 +454,7 @@ export const ProvinceCitySelector = ({
       <div className="flex items-center space-x-2">
         <RadioGroupItem value="town" id="town-radio" className="h-4 w-4" />
         <Label htmlFor="town-radio" className="text-sm font-medium cursor-pointer">
-          شهر
+          شهر 
         </Label>
       </div>
       <div className="flex items-center space-x-2">
@@ -285,35 +464,59 @@ export const ProvinceCitySelector = ({
         </Label>
       </div>
     </RadioGroup>
+    *
   </div>
 
   {/* Rest of your select component */}
-  <Select 
-    className="text-right"
-    value={selectedType === 'town' ? townId : villageId} 
-    onValueChange={(value) => {
-      onInputChange(selectedType === 'town' ? 'town_id' : 'village_id', value);
-      // Handle location selection and coordinate setting
-      handleLocationSelection(value, selectedType);
-    }}
-    disabled={!cityId}
-  >
-    <SelectTrigger className="h-11">
-      <SelectValue placeholder={`انتخاب ${selectedType === 'town' ? 'شهر' : 'روستا'}`} />
-    </SelectTrigger>
-    <SelectContent>
-      {((selectedType === 'town' && loading.towns) || (selectedType === 'village' && loading.villages)) && (
-        <SelectItem value="loading" disabled>
-          در حال بارگیری...
-        </SelectItem>
-      )}
-      {(selectedType === 'town' ? towns : villages).map((item) => (
-        <SelectItem key={`${selectedType}-${item.id}`} value={item.id.toString()}>
-          {item.title}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
+  <Popover>
+    <PopoverTrigger className="popover-trigger-full">
+      <Button
+        variant="outline"
+        disabled={!cityId}
+        className="h-11 w-full justify-between text-right"
+      >
+        {(selectedType === 'town' ? townId : villageId)
+          ? (selectedType === 'town' 
+              ? towns.find((town) => town.id.toString() === townId)?.title 
+              : villages.find((village) => village.id.toString() === villageId)?.title) || `انتخاب ${selectedType === 'town' ? 'شهر' : 'روستا'}`
+          : `انتخاب ${selectedType === 'town' ? 'شهر' : 'روستا'}`}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="popover-content-full p-0" align="start">
+      <Command shouldFilter={true}>
+        <CommandInput placeholder={`جستجو ${selectedType === 'town' ? 'شهر' : 'روستا'}...`} className="h-9" />
+        <CommandList>
+          <CommandEmpty>
+            {((selectedType === 'town' && loading.towns) || (selectedType === 'village' && loading.villages))
+              ? "در حال بارگیری..."
+              : `${selectedType === 'town' ? 'شهری' : 'روستایی'} یافت نشد`}
+          </CommandEmpty>
+          <CommandGroup>
+            {(selectedType === 'town' ? towns : villages).map((item) => (
+              <CommandItem
+                key={`${selectedType}-${item.id}`}
+                value={item.title}
+                onSelect={() => {
+                  onInputChange(selectedType === 'town' ? 'town_id' : 'village_id', item.id.toString());
+                  // Handle location selection and coordinate setting
+                  handleLocationSelection(item.id.toString(), selectedType);
+                }}
+              >
+                <Check
+                  className={cn(
+                    "ml-2 h-4 w-4",
+                    (selectedType === 'town' ? townId : villageId) === item.id.toString() ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {item.title}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
 </div>
       </div>
     </div>

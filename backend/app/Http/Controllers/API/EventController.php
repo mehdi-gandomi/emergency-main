@@ -15,6 +15,55 @@ use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'type_event_id' => 'nullable|integer',
+            'base_type' => 'nullable|integer',
+            'level' => 'nullable|integer',
+            'operation_status' => 'nullable|integer',
+            'province_id' => 'nullable|integer',
+            'branches_id' => 'nullable|integer',
+            'archived' => 'nullable|in:0,1',
+            'from' => 'nullable|integer', // unix seconds on times_accident
+            'to' => 'nullable|integer',   // unix seconds on times_accident
+            'q' => 'nullable|string|max:200',
+            'min_lat' => 'nullable|numeric',
+            'max_lat' => 'nullable|numeric',
+            'min_lon' => 'nullable|numeric',
+            'max_lon' => 'nullable|numeric',
+            'sort_by' => [
+                'nullable',
+                Rule::in(['id','times_accident','level','operation_status','province_id','type_event_id'])
+            ],
+            'sort_dir' => 'nullable|in:asc,desc',
+            'per_page' => 'nullable|integer|min:1|max:200',
+        ]);
+
+        $sortBy = $validated['sort_by'] ?? 'times_accident';
+        $sortDir = $validated['sort_dir'] ?? 'desc';
+        $perPage = $validated['per_page'] ?? 20;
+
+        $query = Event::query()
+            ->when($validated['type_event_id'] ?? null, fn($q, $v) => $q->where('type_event_id', $v))
+            ->when($validated['base_type'] ?? null, fn($q, $v) => $q->where('base_type', $v))
+            ->when($validated['level'] ?? null, fn($q, $v) => $q->where('level', $v))
+            ->when($validated['operation_status'] ?? null, fn($q, $v) => $q->where('operation_status', $v))
+            ->when($validated['province_id'] ?? null, fn($q, $v) => $q->where('province_id', $v))
+            ->when($validated['branches_id'] ?? null, fn($q, $v) => $q->where('branches_id', $v))
+            ->when(isset($validated['archived']) ? $validated['archived'] : null, fn($q, $v) => $q->where('archived', $v))
+            ->betweenUnix($validated['from'] ?? null, $validated['to'] ?? null, 'times_accident')
+            ->search($validated['q'] ?? null)
+            ->geoBox($validated['min_lat'] ?? null, $validated['max_lat'] ?? null, $validated['min_lon'] ?? null, $validated['max_lon'] ?? null)
+            ->orderBy($sortBy, $sortDir);
+            // ->where('archived', 0)
+        $events = $query->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $events
+        ]);
+    }
     /**
      * Get a specific event by ID
      * 

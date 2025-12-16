@@ -1,15 +1,14 @@
 export enum NuisanceType {
-  INSULT = 'INSULT',
-  ENTERTAINMENT = 'ENTERTAINMENT',
-  SILENCE = 'SILENCE',
-  EMERGENCY_TEST = 'EMERGENCY_TEST',
+  INSULT = 1,
+  ENTERTAINMENT = 2,
+  SILENCE = 3,
+  EMERGENCY_TEST = 4,
 }
-
 export const NuisanceTypeLabels: Record<NuisanceType, string> = {
   [NuisanceType.INSULT]: 'فحاشی و توهین',
-  [NuisanceType.ENTERTAINMENT]: 'سرگرمی و بازی',
+  [NuisanceType.ENTERTAINMENT]: 'شوخی و سرگرمی',
   [NuisanceType.SILENCE]: 'عدم مکالمه',
-  [NuisanceType.EMERGENCY_TEST]: 'تست شماره اضطراری',
+  [NuisanceType.EMERGENCY_TEST]: 'تست سلامت تلفن همراه',
 };
 
 

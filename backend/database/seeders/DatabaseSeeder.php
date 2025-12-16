@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Database\Seeders\VehiclesTableSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -31,6 +32,10 @@ class DatabaseSeeder extends Seeder
             'extension' => '101',
             'province_id' => 1,
             'city_id' => 1,
+        ]);
+
+        $this->call([
+            VehiclesTableSeeder::class,
         ]);
     }
 }
